@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="50%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#f43f5e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <rect x="32" y="32" width="448" height="448" rx="128" fill="url(#grad)" filter="url(#shadow)"/>
+  
+  <!-- Stylized NB Monogram -->
+  <path d="M140 372V140h60l112 160V140h60v232h-60L200 212v160h-60z" fill="white" font-family="sans-serif" font-weight="900"/>
+</svg>
