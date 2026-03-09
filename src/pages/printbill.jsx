@@ -70,11 +70,11 @@ export default function PrintBill() {
                                 {settings.logo ? (
                                     <img src={settings.logo} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
                                 ) : (
-                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs print:border print:border-gray-200 print:text-gray-900 print:bg-none">
                                         NB
                                     </div>
                                 )}
-                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent print:text-black print:!bg-none">
                                     {settings.name}
                                 </span>
                             </div>
@@ -162,7 +162,7 @@ export default function PrintBill() {
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                             <div className="flex justify-between">
                                 <span className="text-base font-bold text-gray-900 dark:text-white">Grand Total</span>
-                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent print:text-black print:!bg-none">
                                     ₹{bill.grandTotal.toLocaleString('en-IN')}
                                 </span>
                             </div>
