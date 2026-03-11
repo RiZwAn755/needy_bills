@@ -9,6 +9,8 @@ import Expenses from './pages/expenses';
 import ProfitAnalytics from './pages/analytics';
 
 import Settings from './pages/settings';
+import AllBills from './pages/allbills';
+import EditBill from './pages/editbill';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="/products" element={<ManageProducts />} />
             <Route path="/bill" element={<GenerateBill />} />
             <Route path="/bill/preview/:id" element={<PrintBill />} />
+            <Route path="/bill/edit/:id" element={<EditBill />} />
+            <Route path="/all-bills" element={<AllBills />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/analytics" element={<ProfitAnalytics />} />
             <Route path="/settings" element={<Settings />} />

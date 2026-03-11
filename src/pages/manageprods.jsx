@@ -44,7 +44,8 @@ export default function ManageProducts() {
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
-    const [form, setForm] = useState({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '' });
+    const [form, setForm] = useState({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
+    const [filterType, setFilterType] = useState('all'); // 'all', 'low_stock', 'expiring'
     const [showImportModal, setShowImportModal] = useState(false);
     const [importPreview, setImportPreview] = useState([]);
     const [importError, setImportError] = useState('');
@@ -57,20 +58,39 @@ export default function ManageProducts() {
 
     const refresh = () => setProducts(getProducts());
 
-    const filtered = products.filter(
-        (p) =>
-            p.name.toLowerCase().includes(search.toLowerCase()) ||
-            p.category?.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = products.filter((p) => {
+        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.category?.toLowerCase().includes(search.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (filterType === 'low_stock') {
+            return (p.quantity || 0) <= 10;
+        }
+
+        if (filterType === 'expiring') {
+            const status = getExpiryStatus(p.expiryDate).status;
+            return status === 'critical' || status === 'warning' || status === 'expired';
+        }
+
+        return true;
+    });
 
     const openAdd = () => {
-        setForm({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '' });
+        setForm({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
         setEditingProduct(null);
         setShowModal(true);
     };
 
     const openEdit = (product) => {
-        setForm({ name: product.name, price: String(product.price), unit: product.unit || 'pcs', category: product.category || '', expiryDate: product.expiryDate || '' });
+        setForm({
+            name: product.name,
+            price: String(product.price),
+            unit: product.unit || 'pcs',
+            category: product.category || '',
+            expiryDate: product.expiryDate || '',
+            quantity: product.quantity !== undefined ? String(product.quantity) : ''
+        });
         setEditingProduct(product);
         setShowModal(true);
     };
@@ -80,9 +100,23 @@ export default function ManageProducts() {
         if (!form.name.trim() || !form.price) return;
 
         if (editingProduct) {
-            updateProduct(editingProduct.id, { name: form.name.trim(), price: parseFloat(form.price), unit: form.unit, category: form.category.trim(), expiryDate: form.expiryDate || '' });
+            updateProduct(editingProduct.id, {
+                name: form.name.trim(),
+                price: parseFloat(form.price),
+                unit: form.unit,
+                category: form.category.trim(),
+                expiryDate: form.expiryDate || '',
+                quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+            });
         } else {
-            addProduct({ name: form.name.trim(), price: parseFloat(form.price), unit: form.unit, category: form.category.trim(), expiryDate: form.expiryDate || '' });
+            addProduct({
+                name: form.name.trim(),
+                price: parseFloat(form.price),
+                unit: form.unit,
+                category: form.category.trim(),
+                expiryDate: form.expiryDate || '',
+                quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+            });
         }
         setShowModal(false);
         refresh();
@@ -130,13 +164,15 @@ export default function ManageProducts() {
                         const price = parseFloat(String(priceRaw).replace(/[^0-9.]/g, ''));
                         const unit = String(mapCol(row, ['unit', 'uom']) || 'pcs').trim() || 'pcs';
                         const category = String(mapCol(row, ['category', 'cat', 'type', 'group']) || '').trim();
+                        const quantityRaw = mapCol(row, ['quantity', 'qty', 'stock']);
+                        const quantity = quantityRaw ? parseInt(String(quantityRaw).replace(/[^0-9]/g, ''), 10) : 0;
                         const expiryRaw = mapCol(row, ['expiry', 'expire', 'exp', 'best before']);
                         let expiryDate = '';
                         if (expiryRaw) {
                             const d = new Date(expiryRaw);
                             if (!isNaN(d.getTime())) expiryDate = d.toISOString().split('T')[0];
                         }
-                        return { name, price, unit, category, expiryDate };
+                        return { name, price, unit, category, quantity, expiryDate };
                     })
                     .filter((p) => p.name && !isNaN(p.price) && p.price > 0);
 
@@ -222,19 +258,54 @@ export default function ManageProducts() {
                 </div>
             )}
 
-            {/* Search */}
+            {/* Filters & Search */}
             <div className="mb-6 animate-fade-in" style={{ animationDelay: '80ms' }}>
-                <div className="relative max-w-md">
-                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Search products by name or category..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
-                    />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative w-full max-w-md">
+                        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Search products by name or category..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                        />
+                    </div>
+
+                    {/* Quick Filters */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                        <button
+                            onClick={() => setFilterType('all')}
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterType === 'all'
+                                ? 'bg-indigo-500 text-white shadow-sm'
+                                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                        >
+                            All Products
+                        </button>
+                        <button
+                            onClick={() => setFilterType('low_stock')}
+                            className={`whitespace-nowrap inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterType === 'low_stock'
+                                ? 'bg-amber-500 text-white shadow-sm'
+                                : 'bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-500 border border-gray-200 dark:border-gray-700 hover:bg-amber-50 dark:hover:bg-gray-700'
+                                }`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            Low Stock
+                        </button>
+                        <button
+                            onClick={() => setFilterType('expiring')}
+                            className={`whitespace-nowrap inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterType === 'expiring'
+                                ? 'bg-rose-500 text-white shadow-sm'
+                                : 'bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-500 border border-gray-200 dark:border-gray-700 hover:bg-rose-50 dark:hover:bg-gray-700'
+                                }`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            Expiring Soon
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -279,11 +350,18 @@ export default function ManageProducts() {
                                     </span>
                                 </div>
 
-                                <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">{product.name}</h3>
+                                <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate mt-1">{product.name}</h3>
 
-                                <div className="flex items-baseline gap-1.5 mt-2">
-                                    <span className="text-2xl font-bold text-gray-900 dark:text-white">₹{product.price.toLocaleString('en-IN')}</span>
-                                    <span className="text-sm text-gray-400 dark:text-gray-500">/ {product.unit}</span>
+                                <div className="flex items-baseline justify-between mt-2">
+                                    <div className="flex items-baseline gap-1.5">
+                                        <span className="text-2xl font-bold text-gray-900 dark:text-white">₹{product.price.toLocaleString('en-IN')}</span>
+                                        <span className="text-sm text-gray-400 dark:text-gray-500">/ {product.unit}</span>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <span className={`text-sm font-semibold ${(product.quantity || 0) <= 10 ? 'text-amber-500' : 'text-gray-600 dark:text-gray-400'}`}>
+                                            Qty: {product.quantity || 0}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Expiry date display */}
@@ -410,15 +488,28 @@ export default function ManageProducts() {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category <span className="text-gray-400">(optional)</span></label>
-                                <input
-                                    type="text"
-                                    value={form.category}
-                                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                                    placeholder="e.g. Groceries"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category <span className="text-gray-400">(optional)</span></label>
+                                    <input
+                                        type="text"
+                                        value={form.category}
+                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
+                                        placeholder="e.g. Groceries"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Quantity <span className="text-gray-400">(optional)</span></label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={form.quantity}
+                                        onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                                        placeholder="0"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                                    />
+                                </div>
                             </div>
 
                             <div>
@@ -485,6 +576,7 @@ export default function ManageProducts() {
                                         <th className="px-3 py-2">Price</th>
                                         <th className="px-3 py-2">Unit</th>
                                         <th className="px-3 py-2">Category</th>
+                                        <th className="px-3 py-2 text-right">Qty</th>
                                         <th className="px-3 py-2">Expiry</th>
                                     </tr>
                                 </thead>
@@ -496,6 +588,7 @@ export default function ManageProducts() {
                                             <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">₹{p.price.toLocaleString('en-IN')}</td>
                                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{p.unit}</td>
                                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{p.category || '—'}</td>
+                                            <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300 text-right font-medium">{p.quantity || 0}</td>
                                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">
                                                 {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                                             </td>

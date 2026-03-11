@@ -81,6 +81,15 @@ export function deleteBill(id) {
     saveBills(bills);
 }
 
+export function updateBill(id, updates) {
+    const bills = getBills();
+    const idx = bills.findIndex((b) => b.id === id);
+    if (idx === -1) return null;
+    bills[idx] = { ...bills[idx], ...updates, updatedAt: new Date().toISOString() };
+    saveBills(bills);
+    return bills[idx];
+}
+
 export function getBillById(id) {
     return getBills().find((b) => b.id === id) || null;
 }
