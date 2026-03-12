@@ -22,7 +22,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/auth/users', {
+        const response = await fetch(`${import.meta.env.VITE_BASE_URL}api/auth/users`, {
           credentials: 'include'
         });
         if (!response.ok) {
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     }
     
     try {
-      const response = await fetch(`http://localhost:3000/api/auth/user/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}api/auth/user/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:3000/api/auth/updateuser', {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}api/auth/updateuser`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

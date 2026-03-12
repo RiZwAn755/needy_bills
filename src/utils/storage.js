@@ -1,5 +1,5 @@
 // ── API wrappers for offline-to-online billing data ──
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = `${import.meta.env.VITE_BASE_URL}api`;
 
 // Helper to handle API responses centrally
 async function fetchAPI(endpoint, options = {}) {
