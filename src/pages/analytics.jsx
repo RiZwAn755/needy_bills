@@ -27,30 +27,53 @@ export default function ProfitAnalytics() {
     const [period, setPeriod] = useState('monthly');
     const [selectedProduct, setSelectedProduct] = useState('');
     const [stats, setStats] = useState({});
+    const [products, setProducts] = useState([]);
+    const [expenses, setExpenses] = useState([]);
+    const [productNames, setProductNames] = useState([]);
+    const [overallData, setOverallData] = useState([]);
+    const [productData, setProductData] = useState(null);
 
+    // Initial Load
     useEffect(() => {
-        setStats(getStats());
+        const loadInitialData = async () => {
+            const fetchedStats = await getStats();
+            setStats(fetchedStats);
+
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+
+            const fetchedExpenses = await getExpenses();
+            setExpenses(fetchedExpenses || []);
+
+            const names = new Set();
+            (fetchedProducts || []).forEach((p) => names.add(p.name));
+            (fetchedExpenses || []).forEach((e) => names.add(e.productName));
+            setProductNames([...names].sort());
+        };
+        loadInitialData();
     }, []);
 
-    const products = useMemo(() => getProducts(), []);
-    const expenses = useMemo(() => getExpenses(), []);
+    // Load Overall Analytics on Period Change
+    useEffect(() => {
+        const loadOverall = async () => {
+            const data = await getProfitAnalytics(period);
+            setOverallData(data);
+        };
+        loadOverall();
+    }, [period]);
 
-    // Get unique product names from both products and expenses
-    const productNames = useMemo(() => {
-        const names = new Set();
-        products.forEach((p) => names.add(p.name));
-        expenses.forEach((e) => names.add(e.productName));
-        return [...names].sort();
-    }, [products, expenses]);
-
-    // Overall analytics
-    const overallData = useMemo(() => getProfitAnalytics(period), [period]);
-
-    // Per-product analytics
-    const productData = useMemo(
-        () => (selectedProduct ? getProductProfitAnalytics(selectedProduct) : null),
-        [selectedProduct]
-    );
+    // Load Per-product Analytics on Product Change
+    useEffect(() => {
+        const loadProduct = async () => {
+            if (selectedProduct) {
+                const data = await getProductProfitAnalytics(selectedProduct);
+                setProductData(data);
+            } else {
+                setProductData(null);
+            }
+        };
+        loadProduct();
+    }, [selectedProduct]);
 
     const isDark = document.documentElement.classList.contains('dark');
     const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';

@@ -8,19 +8,35 @@ export default function AllBills() {
     const [filterMonth, setFilterMonth] = useState('');
     const [filterName, setFilterName] = useState('');
 
+    const loadBills = async () => {
+        const data = await getBills();
+        setBills(data);
+    };
+
     useEffect(() => {
-        setBills(getBills());
+        loadBills();
     }, []);
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this bill?')) {
-            deleteBill(id);
-            setBills(getBills());
+            try {
+                await deleteBill(id);
+                loadBills();
+            } catch(err) {
+                alert("Failed to delete bill: " + err.message);
+            }
         }
     };
 
     const filteredBills = bills.filter((bill) => {
-        const billDateObj = new Date(bill.date);
+        // Safe Date Parsing
+        let billDateObj;
+        try {
+            billDateObj = new Date(bill.createdAt || bill.date);
+            if (isNaN(billDateObj.getTime())) throw new Error("Invalid date");
+        } catch (e) {
+            billDateObj = new Date(); // Fallback to avoid crashes
+        }
 
         // Match Name
         const matchesName = bill.customerName?.toLowerCase().includes(filterName.toLowerCase());
@@ -106,45 +122,55 @@ export default function AllBills() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredBills.map((bill) => (
-                                    <tr key={bill.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                            #{bill.billNumber}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {new Date(bill.date).toLocaleDateString('en-IN', {
-                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit'
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                                            {bill.customerName || 'Walk-in Customer'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white text-right">
-                                            ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-3">
-                                            <Link
-                                                to={`/bill/preview/${bill.id}`}
-                                                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
-                                            >
-                                                View
-                                            </Link>
-                                            <Link
-                                                to={`/bill/edit/${bill.id}`}
-                                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
-                                            >
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(bill.id)}
-                                                className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-medium transition-colors"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredBills.map((bill) => {
+                                    let safeDate;
+                                    try {
+                                        safeDate = new Date(bill.createdAt || bill.date);
+                                        if (isNaN(safeDate.getTime())) safeDate = new Date();
+                                    } catch (e) {
+                                        safeDate = new Date();
+                                    }
+
+                                    return (
+                                        <tr key={bill.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                #{bill.billNumber}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {safeDate.toLocaleDateString('en-IN', {
+                                                    day: '2-digit', month: 'short', year: 'numeric',
+                                                    hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {bill.customerName || 'Walk-in Customer'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white text-right">
+                                                ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-3">
+                                                <Link
+                                                    to={`/bill/preview/${bill.id}`}
+                                                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
+                                                >
+                                                    View
+                                                </Link>
+                                                <Link
+                                                    to={`/bill/edit/${bill.id}`}
+                                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
+                                                >
+                                                    Edit
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDelete(bill.id)}
+                                                    className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-medium transition-colors"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

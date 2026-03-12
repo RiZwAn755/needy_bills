@@ -9,8 +9,17 @@ export default function Dashboard() {
     const { isInstalled, canInstall, isInstalling, install } = usePWAInstall();
 
     useEffect(() => {
-        setStats(getStats());
-        setRecentBills(getBills().slice(0, 10));
+        const loadDashboard = async () => {
+            try {
+                const statsData = await getStats();
+                setStats(statsData);
+                const billsData = await getBills();
+                setRecentBills(billsData.slice(0, 10));
+            } catch(e) {
+                console.error("Dashboard load error", e);
+            }
+        };
+        loadDashboard();
     }, []);
 
     return (

@@ -1,61 +1,74 @@
-// ── localStorage wrapper for offline billing data ──
+// ── API wrappers for offline-to-online billing data ──
+const API_BASE = 'http://localhost:3000/api';
 
-const PRODUCTS_KEY = 'billflow_products';
-const BILLS_KEY = 'billflow_bills';
-const BILL_COUNTER_KEY = 'billflow_bill_counter';
+// Helper to handle API responses centrally
+async function fetchAPI(endpoint, options = {}) {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        },
+        credentials: 'include' // Crucial for sending JWT cookies
+    });
+    
+    if (!res.ok) {
+        let errMessage = 'API Request Failed';
+        try {
+            const data = await res.json();
+            errMessage = data.error || errMessage;
+        } catch(e) {}
+        throw new Error(errMessage);
+    }
+    
+    // For DELETE routes, there might be no content
+    if (res.status === 204) return null;
+    
+    return res.json();
+}
 
 // ── Products ──
-export function getProducts() {
+export async function getProducts() {
     try {
-        return JSON.parse(localStorage.getItem(PRODUCTS_KEY)) || [];
-    } catch {
+        return await fetchAPI('/products');
+    } catch(err) {
+        console.error("Failed fetching products:", err);
         return [];
     }
 }
 
-export function saveProducts(products) {
-    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+export async function addProduct(product) {
+    return await fetchAPI('/products', {
+        method: 'POST',
+        body: JSON.stringify(product)
+    });
 }
 
-export function addProduct(product) {
-    const products = getProducts();
-    const newProduct = {
-        ...product,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-    };
-    products.push(newProduct);
-    saveProducts(products);
-    return newProduct;
+export async function updateProduct(id, updates) {
+    return await fetchAPI(`/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+    });
 }
 
-export function updateProduct(id, updates) {
-    const products = getProducts();
-    const idx = products.findIndex((p) => p.id === id);
-    if (idx === -1) return null;
-    products[idx] = { ...products[idx], ...updates, updatedAt: new Date().toISOString() };
-    saveProducts(products);
-    return products[idx];
-}
-
-export function deleteProduct(id) {
-    const products = getProducts().filter((p) => p.id !== id);
-    saveProducts(products);
+export async function deleteProduct(id) {
+    await fetchAPI(`/products/${id}`, {
+        method: 'DELETE'
+    });
 }
 
 // ── Bills ──
-export function getBills() {
+export async function getBills() {
     try {
-        return JSON.parse(localStorage.getItem(BILLS_KEY)) || [];
-    } catch {
+        return await fetchAPI('/bills');
+    } catch(err) {
+        console.error("Failed fetching bills:", err);
         return [];
     }
 }
 
-export function saveBills(bills) {
-    localStorage.setItem(BILLS_KEY, JSON.stringify(bills));
-}
-
+// Keep a local counter for UI optimistic updates, but the true billNumber comes from backend
+const BILL_COUNTER_KEY = 'billflow_bill_counter';
 export function getNextBillNumber() {
     const current = parseInt(localStorage.getItem(BILL_COUNTER_KEY) || '0', 10);
     const next = current + 1;
@@ -63,50 +76,43 @@ export function getNextBillNumber() {
     return next;
 }
 
-export function saveBill(bill) {
-    const bills = getBills();
-    const newBill = {
-        ...bill,
-        id: crypto.randomUUID(),
-        billNumber: getNextBillNumber(),
-        date: new Date().toISOString(),
-    };
-    bills.unshift(newBill); // newest first
-    saveBills(bills);
-    return newBill;
+export async function saveBill(bill) {
+    return await fetchAPI('/bills', {
+        method: 'POST',
+        body: JSON.stringify(bill)
+    });
 }
 
-export function deleteBill(id) {
-    const bills = getBills().filter((b) => b.id !== id);
-    saveBills(bills);
+export async function deleteBill(id) {
+    await fetchAPI(`/bills/${id}`, {
+        method: 'DELETE'
+    });
 }
 
-export function updateBill(id, updates) {
-    const bills = getBills();
-    const idx = bills.findIndex((b) => b.id === id);
-    if (idx === -1) return null;
-    bills[idx] = { ...bills[idx], ...updates, updatedAt: new Date().toISOString() };
-    saveBills(bills);
-    return bills[idx];
+export async function updateBill(id, updates) {
+    return await fetchAPI(`/bills/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+    });
 }
 
-export function getBillById(id) {
-    return getBills().find((b) => b.id === id) || null;
-}
-
-// ── Expenses ──
-const EXPENSES_KEY = 'billflow_expenses';
-
-export function getExpenses() {
+export async function getBillById(id) {
     try {
-        return JSON.parse(localStorage.getItem(EXPENSES_KEY)) || [];
-    } catch {
-        return [];
+        return await fetchAPI(`/bills/${id}`);
+    } catch(err) {
+         console.error("Failed fetching bill:", err);
+         return null;
     }
 }
 
-export function saveExpenses(expenses) {
-    localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
+// ── Expenses ──
+export async function getExpenses() {
+    try {
+        return await fetchAPI('/expenses');
+    } catch(err) {
+        console.error("Failed fetching expenses:", err);
+        return [];
+    }
 }
 
 // ── Company Settings ──
@@ -142,37 +148,31 @@ export function saveCompanySettings(settings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-export function addExpense(expense) {
-    const expenses = getExpenses();
-    const newExpense = {
-        ...expense,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-    };
-    expenses.unshift(newExpense);
-    saveExpenses(expenses);
-    return newExpense;
+export async function addExpense(expense) {
+    return await fetchAPI('/expenses', {
+        method: 'POST',
+        body: JSON.stringify(expense)
+    });
 }
 
-export function updateExpense(id, updates) {
-    const expenses = getExpenses();
-    const idx = expenses.findIndex((e) => e.id === id);
-    if (idx === -1) return null;
-    expenses[idx] = { ...expenses[idx], ...updates, updatedAt: new Date().toISOString() };
-    saveExpenses(expenses);
-    return expenses[idx];
+export async function updateExpense(id, updates) {
+    return await fetchAPI(`/expenses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+    });
 }
 
-export function deleteExpense(id) {
-    const expenses = getExpenses().filter((e) => e.id !== id);
-    saveExpenses(expenses);
+export async function deleteExpense(id) {
+    await fetchAPI(`/expenses/${id}`, {
+        method: 'DELETE'
+    });
 }
 
 // ── Stats ──
-export function getStats() {
-    const products = getProducts();
-    const bills = getBills();
-    const expenses = getExpenses();
+export async function getStats() {
+    const products = await getProducts();
+    const bills = await getBills();
+    const expenses = await getExpenses();
     const totalRevenue = bills.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + (e.totalCost || 0), 0);
     return {
@@ -185,9 +185,9 @@ export function getStats() {
 }
 
 // ── Profit Analytics ──
-export function getProfitAnalytics(period = 'monthly') {
-    const bills = getBills();
-    const expenses = getExpenses();
+export async function getProfitAnalytics(period = 'monthly') {
+    const bills = await getBills();
+    const expenses = await getExpenses();
 
     const getKey = (dateStr) => {
         const d = new Date(dateStr);
@@ -203,7 +203,7 @@ export function getProfitAnalytics(period = 'monthly') {
     const expenseMap = {};
 
     bills.forEach((b) => {
-        const key = getKey(b.date);
+        const key = getKey(b.createdAt || b.date);
         revenueMap[key] = (revenueMap[key] || 0) + (b.grandTotal || 0);
     });
 
@@ -223,15 +223,15 @@ export function getProfitAnalytics(period = 'monthly') {
     }));
 }
 
-export function getProductProfitAnalytics(productName) {
-    const bills = getBills();
-    const expenses = getExpenses();
+export async function getProductProfitAnalytics(productName) {
+    const bills = await getBills();
+    const expenses = await getExpenses();
 
     // Revenue from this product across all bills
     let totalRevenue = 0;
     const revenueByMonth = {};
     bills.forEach((b) => {
-        const key = new Date(b.date).toISOString().slice(0, 7);
+        const key = new Date(b.createdAt || b.date).toISOString().slice(0, 7);
         (b.items || []).forEach((item) => {
             if (item.name.toLowerCase() === productName.toLowerCase()) {
                 totalRevenue += item.amount || item.price * item.qty;

@@ -52,11 +52,16 @@ export default function ManageProducts() {
     const [importing, setImporting] = useState(false);
     const fileInputRef = useRef(null);
 
+    const loadProducts = async () => {
+        const data = await getProducts();
+        setProducts(data);
+    };
+
     useEffect(() => {
-        setProducts(getProducts());
+        loadProducts();
     }, []);
 
-    const refresh = () => setProducts(getProducts());
+    const refresh = () => loadProducts();
 
     const filtered = products.filter((p) => {
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,37 +100,46 @@ export default function ManageProducts() {
         setShowModal(true);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.name.trim() || !form.price) return;
 
-        if (editingProduct) {
-            updateProduct(editingProduct.id, {
-                name: form.name.trim(),
-                price: parseFloat(form.price),
-                unit: form.unit,
-                category: form.category.trim(),
-                expiryDate: form.expiryDate || '',
-                quantity: form.quantity ? parseInt(form.quantity, 10) : 0
-            });
-        } else {
-            addProduct({
-                name: form.name.trim(),
-                price: parseFloat(form.price),
-                unit: form.unit,
-                category: form.category.trim(),
-                expiryDate: form.expiryDate || '',
-                quantity: form.quantity ? parseInt(form.quantity, 10) : 0
-            });
+        try {
+            if (editingProduct) {
+                await updateProduct(editingProduct.id, {
+                    name: form.name.trim(),
+                    price: parseFloat(form.price),
+                    unit: form.unit,
+                    category: form.category.trim(),
+                    expiryDate: form.expiryDate || '',
+                    quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+                });
+            } else {
+                await addProduct({
+                    name: form.name.trim(),
+                    price: parseFloat(form.price),
+                    unit: form.unit,
+                    category: form.category.trim(),
+                    expiryDate: form.expiryDate || '',
+                    quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+                });
+            }
+            setShowModal(false);
+            refresh();
+        } catch(error) {
+            console.error("Failed saving product:", error);
+            alert("Error saving product: " + error.message);
         }
-        setShowModal(false);
-        refresh();
     };
 
-    const handleDelete = (id) => {
-        deleteProduct(id);
-        setDeleteConfirm(null);
-        refresh();
+    const handleDelete = async (id) => {
+        try {
+            await deleteProduct(id);
+            setDeleteConfirm(null);
+            refresh();
+        } catch(err) {
+            alert('Failed deleting product: ' + err.message);
+        }
     };
 
     // ── Import from Excel / CSV ──
@@ -192,9 +206,15 @@ export default function ManageProducts() {
         e.target.value = '';
     };
 
-    const confirmImport = () => {
+    const confirmImport = async () => {
         setImporting(true);
-        importPreview.forEach((p) => addProduct(p));
+        try {
+            for (const p of importPreview) {
+                await addProduct(p);
+            }
+        } catch(err) {
+            alert("Some products failed to import.");
+        }
         setImporting(false);
         setShowImportModal(false);
         setImportPreview([]);

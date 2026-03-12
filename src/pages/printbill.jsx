@@ -8,8 +8,11 @@ export default function PrintBill() {
     const [settings] = useState(getCompanySettings());
 
     useEffect(() => {
-        const found = getBillById(id);
-        setBill(found);
+        const loadBill = async () => {
+            const found = await getBillById(id);
+            setBill(found);
+        };
+        loadBill();
     }, [id]);
 
     const handlePrint = () => {

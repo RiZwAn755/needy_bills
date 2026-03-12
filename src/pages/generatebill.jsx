@@ -14,7 +14,11 @@ export default function GenerateBill() {
     const searchRef = useRef(null);
 
     useEffect(() => {
-        setProducts(getProducts());
+        const loadProducts = async () => {
+            const data = await getProducts();
+            setProducts(data);
+        };
+        loadProducts();
     }, []);
 
     // Close dropdown on outside click
@@ -66,25 +70,31 @@ export default function GenerateBill() {
 
     const grandTotal = Math.max(0, subtotal - discountAmount);
 
-    const handleGenerateBill = () => {
+    const handleGenerateBill = async () => {
         if (cart.length === 0) return;
-        const bill = saveBill({
-            customerName: customerName.trim() || 'Walk-in Customer',
-            items: cart.map((c) => ({
-                id: c.id,
-                name: c.name,
-                price: c.price,
-                qty: c.qty,
-                unit: c.unit,
-                amount: c.price * c.qty,
-            })),
-            subtotal,
-            discountType,
-            discountValue: parseFloat(discountValue) || 0,
-            discountAmount,
-            grandTotal,
-        });
-        navigate(`/bill/preview/${bill.id}`);
+        
+        try {
+            const bill = await saveBill({
+                customerName: customerName.trim() || 'Walk-in Customer',
+                items: cart.map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    price: c.price,
+                    qty: c.qty,
+                    unit: c.unit,
+                    amount: c.price * c.qty,
+                })),
+                subtotal,
+                discountType,
+                discountValue: parseFloat(discountValue) || 0,
+                discountAmount,
+                grandTotal,
+            });
+            navigate(`/bill/preview/${bill.id}`);
+        } catch(err) {
+            console.error(err);
+            alert("Failed to generate bill: " + err.message);
+        }
     };
 
     return (

@@ -18,18 +18,28 @@ export default function EditBill() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        setProducts(getProducts());
-        const bill = getBillById(id);
-        if (bill) {
-            setCustomerName(bill.customerName === 'Walk-in Customer' ? '' : bill.customerName);
-            setCart(bill.items || []);
-            setDiscountType(bill.discountType || 'percent');
-            setDiscountValue(bill.discountValue ? String(bill.discountValue) : '');
-        } else {
-            // Bill not found, maybe redirect
-            navigate('/all-bills');
-        }
-        setIsLoading(false);
+        const loadDependencies = async () => {
+            try {
+                const fetchedProducts = await getProducts();
+                setProducts(fetchedProducts);
+
+                const bill = await getBillById(id);
+                if (bill) {
+                    setCustomerName(bill.customerName === 'Walk-in Customer' ? '' : bill.customerName);
+                    setCart(bill.items || []);
+                    setDiscountType(bill.discountType || 'percent');
+                    setDiscountValue(bill.discountValue ? String(bill.discountValue) : '');
+                } else {
+                    navigate('/all-bills');
+                }
+            } catch (err) {
+                navigate('/all-bills');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        loadDependencies();
     }, [id, navigate]);
 
     // Close dropdown on outside click
@@ -81,28 +91,32 @@ export default function EditBill() {
 
     const grandTotal = Math.max(0, subtotal - discountAmount);
 
-    const handleUpdateBill = () => {
+    const handleUpdateBill = async () => {
         if (cart.length === 0) return;
-        const updatedBill = updateBill(id, {
-            customerName: customerName.trim() || 'Walk-in Customer',
-            items: cart.map((c) => ({
-                id: c.id,
-                name: c.name,
-                price: c.price,
-                qty: c.qty,
-                unit: c.unit,
-                amount: c.price * c.qty,
-            })),
-            subtotal,
-            discountType,
-            discountValue: parseFloat(discountValue) || 0,
-            discountAmount,
-            grandTotal,
-        });
-        if (updatedBill) {
-            navigate(`/bill/preview/${updatedBill.id}`);
-        } else {
-            alert('Error updating bill.');
+        try {
+            const updatedBill = await updateBill(id, {
+                customerName: customerName.trim() || 'Walk-in Customer',
+                items: cart.map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    price: c.price,
+                    qty: c.qty,
+                    unit: c.unit,
+                    amount: c.price * c.qty,
+                })),
+                subtotal,
+                discountType,
+                discountValue: parseFloat(discountValue) || 0,
+                discountAmount,
+                grandTotal,
+            });
+            if (updatedBill) {
+                navigate(`/bill/preview/${updatedBill.id}`);
+            } else {
+                alert('Error updating bill.');
+            }
+        } catch(err) {
+            alert('Failed to update bill: ' + err.message);
         }
     };
 

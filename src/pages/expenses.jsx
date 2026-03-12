@@ -18,12 +18,18 @@ export default function Expenses() {
         notes: '',
     });
 
+    const loadData = async () => {
+        const fetchedExpenses = await getExpenses();
+        setExpenses(fetchedExpenses);
+        const fetchedProducts = await getProducts();
+        setProducts(fetchedProducts);
+    };
+
     useEffect(() => {
-        setExpenses(getExpenses());
-        setProducts(getProducts());
+        loadData();
     }, []);
 
-    const refresh = () => setExpenses(getExpenses());
+    const refresh = () => loadData();
 
     const filtered = expenses.filter(
         (e) =>
@@ -68,7 +74,7 @@ export default function Expenses() {
         setShowModal(true);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.productName.trim() || !form.totalCost) return;
 
@@ -82,19 +88,28 @@ export default function Expenses() {
             notes: form.notes.trim(),
         };
 
-        if (editingExpense) {
-            updateExpense(editingExpense.id, data);
-        } else {
-            addExpense(data);
+        try {
+            if (editingExpense) {
+                await updateExpense(editingExpense.id, data);
+            } else {
+                await addExpense(data);
+            }
+            setShowModal(false);
+            refresh();
+        } catch(err) {
+            console.error("Expense saving error:", err);
+            alert("Error saving expense: " + err.message);
         }
-        setShowModal(false);
-        refresh();
     };
 
-    const handleDelete = (id) => {
-        deleteExpense(id);
-        setDeleteConfirm(null);
-        refresh();
+    const handleDelete = async (id) => {
+        try {
+            await deleteExpense(id);
+            setDeleteConfirm(null);
+            refresh();
+        } catch(err) {
+            alert("Failed deleting expense: " + err.message);
+        }
     };
 
     // Auto-calculate total cost when units/costPerUnit change
