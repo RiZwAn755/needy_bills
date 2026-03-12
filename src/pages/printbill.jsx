@@ -32,7 +32,7 @@ export default function PrintBill() {
         );
     }
 
-    const billDate = new Date(bill.date);
+    const billDate = new Date(bill.date || bill.createdAt);
 
     return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -96,7 +96,7 @@ export default function PrintBill() {
 
                         <div className="text-right">
                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                #{String(bill.billNumber).padStart(4, '0')}
+                                #{bill.billNumber != null ? String(bill.billNumber).padStart(4, '0') : 'N/A'}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                 {billDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}

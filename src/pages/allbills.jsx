@@ -134,7 +134,7 @@ export default function AllBills() {
                                     return (
                                         <tr key={bill.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                                #{bill.billNumber}
+                                                #{bill.billNumber != null ? String(bill.billNumber).padStart(4, '0') : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                 {safeDate.toLocaleDateString('en-IN', {

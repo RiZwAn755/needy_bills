@@ -270,14 +270,14 @@ export default function Dashboard() {
                                     {recentBills.map((bill) => (
                                         <tr key={bill.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                             <td className="px-6 py-3.5 font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                #{String(bill.billNumber).padStart(4, '0')}
+                                                #{bill.billNumber != null ? String(bill.billNumber).padStart(4, '0') : 'N/A'}
                                             </td>
                                             <td className="px-6 py-3.5 text-gray-600 dark:text-gray-400">{bill.customerName}</td>
                                             <td className="px-6 py-3.5 font-semibold text-gray-900 dark:text-white">
                                                 ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
                                             </td>
                                             <td className="px-6 py-3.5 text-gray-500 dark:text-gray-400 text-xs">
-                                                {new Date(bill.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {new Date(bill.date || bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </td>
                                             <td className="px-6 py-3.5 text-right">
                                                 <Link
