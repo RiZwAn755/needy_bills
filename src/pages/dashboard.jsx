@@ -6,7 +6,7 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 export default function Dashboard() {
     const [stats, setStats] = useState({ totalProducts: 0, totalBills: 0, totalRevenue: 0, totalExpenses: 0, totalProfit: 0 });
     const [recentBills, setRecentBills] = useState([]);
-    const { isInstalled, canInstall, isInstalling, install } = usePWAInstall();
+    const { isInstalled, canInstall, isInstalling, install } =usePWAInstall();
 
     useEffect(() => {
         const loadDashboard = async () => {
