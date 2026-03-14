@@ -13,6 +13,7 @@ const PrintBill = lazy(() => import('./pages/printbill'));
 const Expenses = lazy(() => import('./pages/expenses'));
 const ProfitAnalytics = lazy(() => import('./pages/analytics'));
 const Settings = lazy(() => import('./pages/settings'));
+const Profile = lazy(() => import('./pages/profile'));
 const AllBills = lazy(() => import('./pages/allbills'));
 const EditBill = lazy(() => import('./pages/editbill'));
 const Login = lazy(() => import('./pages/login'));
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/analytics" element={<ProfitAnalytics />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
               </Route>
 
               {/* Admin Only Routes */}
