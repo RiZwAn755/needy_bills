@@ -13,8 +13,8 @@ export default function Dashboard() {
             try {
                 const statsData = await getStats();
                 setStats(statsData);
-                const billsData = await getBills();
-                setRecentBills(billsData.slice(0, 10));
+                const response = await getBills(10, 0); // Fetch latest 10
+                setRecentBills(response.bills || []);
             } catch(e) {
                 console.error("Dashboard load error", e);
             }
