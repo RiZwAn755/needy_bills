@@ -147,8 +147,8 @@ export default function Expenses() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Track your purchase costs and spending</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your purchase costs and spending</p>
                 </div>
                 <button
                     onClick={openAdd}
@@ -162,7 +162,7 @@ export default function Expenses() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 p-5 shadow-sm animate-fade-in">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Entries</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{data.total}</p>
@@ -210,71 +210,100 @@ export default function Expenses() {
                     )}
                 </div>
             ) : (
-                <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Units</th>
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost/Unit</th>
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Supplier</th>
-                                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                    <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <div className="animate-fade-in">
+                {/* Desktop Table View */}
+                <div className="hidden md:block rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Units</th>
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost/Unit</th>
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Supplier</th>
+                                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {filtered.map((expense) => (
+                                <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    <td className="px-5 py-3.5">
+                                        <p className="font-medium text-gray-900 dark:text-white">{expense.productName}</p>
+                                        {expense.notes && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{expense.notes}</p>}
+                                    </td>
+                                    <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.units || '—'}</td>
+                                    <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.costPerUnit ? `₹${expense.costPerUnit.toLocaleString('en-IN')}` : '—'}</td>
+                                    <td className="px-5 py-3.5 font-semibold text-rose-600 dark:text-rose-400">₹{(expense.totalCost || 0).toLocaleString('en-IN')}</td>
+                                    <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.supplier || '—'}</td>
+                                    <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400">
+                                        {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    <td className="px-5 py-3.5 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <button onClick={() => openEdit(expense)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                            <button onClick={() => setDeleteConfirm(expense.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filtered.map((expense) => (
-                                    <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                        <td className="px-5 py-3.5">
-                                            <p className="font-medium text-gray-900 dark:text-white">{expense.productName}</p>
-                                            {expense.notes && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{expense.notes}</p>}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.units || '—'}</td>
-                                        <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.costPerUnit ? `₹${expense.costPerUnit.toLocaleString('en-IN')}` : '—'}</td>
-                                        <td className="px-5 py-3.5 font-semibold text-rose-600 dark:text-rose-400">₹{(expense.totalCost || 0).toLocaleString('en-IN')}</td>
-                                        <td className="px-5 py-3.5 text-gray-600 dark:text-gray-400">{expense.supplier || '—'}</td>
-                                        <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400">
-                                            {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                <button
-                                                    onClick={() => openEdit(expense)}
-                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all"
-                                                    title="Edit"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteConfirm(expense.id)}
-                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all"
-                                                    title="Delete"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {filtered.map((expense) => (
+                        <div key={expense.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-4 shadow-sm">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="max-w-[70%]">
+                                    <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
+                                        {expense.productName}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Supplier: {expense.supplier || '—'}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                                        ₹{(expense.totalCost || 0).toLocaleString('en-IN')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 py-3 border-y border-gray-100 dark:border-gray-800 my-3">
+                                <div>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Units</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{expense.units || '—'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Cost/Unit</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{expense.costPerUnit ? `₹${expense.costPerUnit}` : '—'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                </p>
+                                <div className="flex gap-4">
+                                    <button onClick={() => openEdit(expense)} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Edit</button>
+                                    <button onClick={() => setDeleteConfirm(expense.id)} className="text-xs font-bold text-rose-500 uppercase tracking-wider">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
             )}
             
             {/* Pagination Controls */}
             {data.total > LIMIT && (
-                <div className="mt-8 flex items-center justify-between bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                         Showing <span className="font-semibold text-gray-900 dark:text-white">{(page - 1) * LIMIT + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(page * LIMIT, data.total)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{data.total}</span> entries
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto justify-center">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
@@ -349,7 +378,7 @@ export default function Expenses() {
                                 </datalist>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Units Bought</label>
                                     <input
@@ -389,7 +418,7 @@ export default function Expenses() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Supplier <span className="text-gray-400">(optional)</span></label>
                                     <input

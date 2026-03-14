@@ -229,8 +229,8 @@ export default function ManageProducts() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Products</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">{products.length} product{products.length !== 1 ? 's' : ''} in inventory</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Products</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{products.length} product{products.length !== 1 ? 's' : ''} in inventory</p>
                 </div>
                 <div className="flex items-center gap-2.5">
                     {/* Import Button */}
@@ -284,13 +284,13 @@ export default function ManageProducts() {
             {/* Filters & Search */}
             <div className="mb-6 animate-fade-in" style={{ animationDelay: '80ms' }}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="relative w-full max-w-md">
+                    <div className="relative w-full md:max-w-md">
                         <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <input
                             type="text"
-                            placeholder="Search products by name or category..."
+                            placeholder="Search products..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
@@ -298,7 +298,7 @@ export default function ManageProducts() {
                     </div>
 
                     {/* Quick Filters */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
                         <button
                             onClick={() => setFilterType('all')}
                             className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterType === 'all'
@@ -478,7 +478,7 @@ export default function ManageProducts() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Price (₹)</label>
                                     <input
@@ -511,7 +511,7 @@ export default function ManageProducts() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category <span className="text-gray-400">(optional)</span></label>
                                     <input
@@ -589,9 +589,9 @@ export default function ManageProducts() {
                             </button>
                         </div>
 
-                        {/* Table */}
-                        <div className="flex-1 overflow-auto p-4">
-                            <table className="w-full text-sm">
+                        {/* Table Preview */}
+                        <div className="flex-1 overflow-auto p-4 no-scrollbar">
+                            <table className="w-full text-sm min-w-[600px]">
                                 <thead>
                                     <tr className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         <th className="px-3 py-2">#</th>

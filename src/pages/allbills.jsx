@@ -63,14 +63,14 @@ export default function AllBills() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8 animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Bills</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">View and filter all generated bills</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">All Bills</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">View and filter all generated bills</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm mb-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm mb-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Billed To Name</label>
                         <input
@@ -108,9 +108,10 @@ export default function AllBills() {
                 </div>
             </div>
 
-            {/* Bills Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in" style={{ animationDelay: '200ms' }}>
-                <div className="overflow-x-auto">
+            {/* Bills View */}
+            <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
@@ -130,14 +131,7 @@ export default function AllBills() {
                                 </tr>
                             ) : (
                                 filteredBills.map((bill) => {
-                                    let safeDate;
-                                    try {
-                                        safeDate = new Date(bill.createdAt || bill.date);
-                                        if (isNaN(safeDate.getTime())) safeDate = new Date();
-                                    } catch (e) {
-                                        safeDate = new Date();
-                                    }
-
+                                    const safeDate = new Date(bill.createdAt || bill.date);
                                     return (
                                         <tr key={bill.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
@@ -156,24 +150,9 @@ export default function AllBills() {
                                                 ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-3">
-                                                <Link
-                                                    to={`/bill/preview/${bill.id}`}
-                                                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
-                                                >
-                                                    View
-                                                </Link>
-                                                <Link
-                                                    to={`/bill/edit/${bill.id}`}
-                                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
-                                                >
-                                                    Edit
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleDelete(bill.id)}
-                                                    className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-medium transition-colors"
-                                                >
-                                                    Delete
-                                                </button>
+                                                <Link to={`/bill/preview/${bill.id}`} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors">View</Link>
+                                                <Link to={`/bill/edit/${bill.id}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors">Edit</Link>
+                                                <button onClick={() => handleDelete(bill.id)} className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-medium transition-colors">Delete</button>
                                             </td>
                                         </tr>
                                     );
@@ -182,15 +161,57 @@ export default function AllBills() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {filteredBills.length === 0 ? (
+                        <div className="text-center py-8 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 text-sm text-gray-500 dark:text-gray-400">
+                            No bills found matching the filters.
+                        </div>
+                    ) : (
+                        filteredBills.map((bill) => {
+                            const safeDate = new Date(bill.createdAt || bill.date);
+                            return (
+                                <div key={bill.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-4 shadow-sm">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                                                Bill #{bill.billNumber != null ? String(bill.billNumber).padStart(4, '0') : 'N/A'}
+                                            </p>
+                                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                                {bill.customerName || 'Walk-in Customer'}
+                                            </h3>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                                ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-3 border-t border-gray-100 dark:border-gray-800">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {safeDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Link to={`/bill/preview/${bill.id}`} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">View</Link>
+                                            <Link to={`/bill/edit/${bill.id}`} className="text-xs font-semibold text-blue-600 dark:text-blue-400">Edit</Link>
+                                            <button onClick={() => handleDelete(bill.id)} className="text-xs font-semibold text-rose-500">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
             {/* Pagination Controls */}
             {data.total > LIMIT && (
-                <div className="mt-8 flex items-center justify-between bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                         Showing <span className="font-semibold text-gray-900 dark:text-white">{(page - 1) * LIMIT + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(page * LIMIT, data.total)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{data.total}</span> bills
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto justify-center">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
