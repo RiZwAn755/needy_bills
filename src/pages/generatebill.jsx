@@ -44,7 +44,7 @@ export default function GenerateBill() {
         if (existing) {
             setCart(cart.map((c) => (c.id === product.id ? { ...c, qty: c.qty + 1 } : c)));
         } else {
-            setCart([...cart, { ...product, qty: 1 }]);
+            setCart([...cart, { ...product, qty: 1, discountType: 'flat', discountValue: 0 }]);
         }
     };
 
@@ -56,9 +56,24 @@ export default function GenerateBill() {
         }
     };
 
+    const updateDiscount = (id, field, value) => {
+        setCart(cart.map((c) => {
+            if (c.id === id) {
+                const updates = { ...c, [field]: field === 'discountValue' ? (parseFloat(value) || 0) : value };
+                return updates;
+            }
+            return c;
+        }));
+    };
+
     const getItemQty = (id) => cart.find(c => c.id === id)?.qty || 0;
 
-    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
+    const subtotal = useMemo(() => cart.reduce((sum, item) => {
+        const unitPriceAfterDiscount = item.discountType === 'percent' 
+            ? item.price * (1 - (item.discountValue || 0) / 100)
+            : item.price - (item.discountValue || 0);
+        return sum + (unitPriceAfterDiscount * item.qty);
+    }, 0), [cart]);
 
     const discountAmount = useMemo(() => {
         return discountType === 'percent'
@@ -74,14 +89,24 @@ export default function GenerateBill() {
         try {
             const bill = await saveBill({
                 customerName: customerName.trim() || 'Walk-in Customer',
-                items: cart.map((c) => ({
-                    id: c.id,
-                    name: c.name,
-                    price: c.price,
-                    qty: c.qty,
-                    unit: c.unit,
-                    amount: c.price * c.qty,
-                })),
+                items: cart.map((c) => {
+                    const unitPriceAfterDiscount = c.discountType === 'percent' 
+                        ? c.price * (1 - (c.discountValue || 0) / 100)
+                        : c.price - (c.discountValue || 0);
+                    const totalLineDiscount = (c.price * c.qty) - (unitPriceAfterDiscount * c.qty);
+                    
+                    return {
+                        id: c.id,
+                        name: c.name,
+                        price: c.price,
+                        qty: c.qty,
+                        unit: c.unit,
+                        discountType: c.discountType || 'flat',
+                        discountValue: c.discountValue || 0,
+                        discountAmount: totalLineDiscount,
+                        amount: unitPriceAfterDiscount * c.qty,
+                    };
+                }),
                 subtotal,
                 discountType,
                 discountValue: parseFloat(discountValue) || 0,
@@ -183,20 +208,39 @@ export default function GenerateBill() {
 
                                         <div className="relative z-10">
                                             {qty > 0 ? (
-                                                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-indigo-100 dark:border-indigo-500/20">
-                                                    <button
-                                                        onClick={() => updateQty(p.id, qty - 1)}
-                                                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 transition-all text-xs"
-                                                    >
-                                                        −
-                                                    </button>
-                                                    <span className="text-xs font-black text-gray-900 dark:text-white">{qty}</span>
-                                                    <button
-                                                        onClick={() => updateQty(p.id, qty + 1)}
-                                                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all text-xs"
-                                                    >
-                                                        +
-                                                    </button>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-indigo-100 dark:border-indigo-500/20">
+                                                        <button
+                                                            onClick={() => updateQty(p.id, qty - 1)}
+                                                            className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 transition-all text-xs"
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <span className="text-xs font-black text-gray-900 dark:text-white">{qty}</span>
+                                                        <button
+                                                            onClick={() => updateQty(p.id, qty + 1)}
+                                                            className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all text-xs"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <select
+                                                            value={cart.find(c => c.id === p.id)?.discountType || 'flat'}
+                                                            onChange={(e) => updateDiscount(p.id, 'discountType', e.target.value)}
+                                                            className="px-1 py-1.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-[10px] font-bold text-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+                                                        >
+                                                            <option value="flat">₹</option>
+                                                            <option value="percent">%</option>
+                                                        </select>
+                                                        <input
+                                                            type="number"
+                                                            value={cart.find(c => c.id === p.id)?.discountValue || ''}
+                                                            onChange={(e) => updateDiscount(p.id, 'discountValue', e.target.value)}
+                                                            placeholder="Disc"
+                                                            className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all"
+                                                        />
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <button

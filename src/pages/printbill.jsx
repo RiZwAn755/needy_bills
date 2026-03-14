@@ -123,6 +123,7 @@ export default function PrintBill() {
                                 <th className="px-4 py-3">Product</th>
                                 <th className="px-4 py-3 text-center">Qty</th>
                                 <th className="px-4 py-3 text-right">Rate</th>
+                                <th className="px-4 py-3 text-right">Disc</th>
                                 <th className="px-8 py-3 text-right">Amount</th>
                             </tr>
                         </thead>
@@ -135,6 +136,19 @@ export default function PrintBill() {
                                         {item.qty} {item.unit}
                                     </td>
                                     <td className="px-4 py-3.5 text-right text-gray-600 dark:text-gray-400">₹{item.price.toLocaleString('en-IN')}</td>
+                                    <td className="px-4 py-3.5 text-right text-emerald-600 dark:text-emerald-400 font-medium">
+                                        {item.discountAmount > 0 ? (
+                                            <div className="flex flex-col items-end">
+                                                <span>−₹{item.discountAmount.toLocaleString('en-IN')}</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">
+                                                    {item.discountType === 'percent' 
+                                                        ? `(${item.discountValue}%)` 
+                                                        : `(₹${item.discountValue}/unit)`
+                                                    }
+                                                </span>
+                                            </div>
+                                        ) : '—'}
+                                    </td>
                                     <td className="px-8 py-3.5 text-right font-semibold text-gray-900 dark:text-white">₹{item.amount.toLocaleString('en-IN')}</td>
                                 </tr>
                             ))}

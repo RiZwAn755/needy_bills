@@ -26,7 +26,11 @@ export default function EditBill() {
                 const bill = await getBillById(id);
                 if (bill) {
                     setCustomerName(bill.customerName === 'Walk-in Customer' ? '' : bill.customerName);
-                    setCart(bill.items || []);
+                    setCart(bill.items.map(item => ({ 
+                        ...item, 
+                        discountType: item.discountType || 'flat', 
+                        discountValue: item.discountValue || 0 
+                    })) || []);
                     setDiscountType(bill.discountType || 'percent');
                     setDiscountValue(bill.discountValue ? String(bill.discountValue) : '');
                 } else {
@@ -68,7 +72,7 @@ export default function EditBill() {
         if (existing) {
             setCart(cart.map((c) => (c.id === product.id ? { ...c, qty: c.qty + 1 } : c)));
         } else {
-            setCart([...cart, { ...product, qty: 1 }]);
+            setCart([...cart, { ...product, qty: 1, discountType: 'flat', discountValue: 0 }]);
         }
     };
 
@@ -80,9 +84,24 @@ export default function EditBill() {
         }
     };
 
+    const updateDiscount = (id, field, value) => {
+        setCart(cart.map((c) => {
+            if (c.id === id) {
+                const updates = { ...c, [field]: field === 'discountValue' ? (parseFloat(value) || 0) : value };
+                return updates;
+            }
+            return c;
+        }));
+    };
+
     const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const subtotal = cart.reduce((sum, item) => {
+        const unitPriceAfterDiscount = item.discountType === 'percent' 
+            ? item.price * (1 - (item.discountValue || 0) / 100)
+            : item.price - (item.discountValue || 0);
+        return sum + (unitPriceAfterDiscount * item.qty);
+    }, 0);
 
     const discountAmount =
         discountType === 'percent'
@@ -96,14 +115,24 @@ export default function EditBill() {
         try {
             const updatedBill = await updateBill(id, {
                 customerName: customerName.trim() || 'Walk-in Customer',
-                items: cart.map((c) => ({
-                    id: c.id,
-                    name: c.name,
-                    price: c.price,
-                    qty: c.qty,
-                    unit: c.unit,
-                    amount: c.price * c.qty,
-                })),
+                items: cart.map((c) => {
+                    const unitPriceAfterDiscount = c.discountType === 'percent' 
+                        ? c.price * (1 - (c.discountValue || 0) / 100)
+                        : c.price - (c.discountValue || 0);
+                    const totalLineDiscount = (c.price * c.qty) - (unitPriceAfterDiscount * c.qty);
+
+                    return {
+                        id: c.id,
+                        name: c.name,
+                        price: c.price,
+                        qty: c.qty,
+                        unit: c.unit,
+                        discountType: c.discountType || 'flat',
+                        discountValue: c.discountValue || 0,
+                        discountAmount: totalLineDiscount,
+                        amount: unitPriceAfterDiscount * c.qty,
+                    };
+                }),
                 subtotal,
                 discountType,
                 discountValue: parseFloat(discountValue) || 0,
@@ -257,9 +286,33 @@ export default function EditBill() {
                                         </div>
 
                                         {/* Amount */}
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white w-20 text-right">
-                                            ₹{(item.price * item.qty).toLocaleString('en-IN')}
-                                        </p>
+                                        <div className="w-24 text-right space-y-1">
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                ₹{(
+                                                    (item.discountType === 'percent' 
+                                                        ? item.price * (1 - (item.discountValue || 0) / 100)
+                                                        : item.price - (item.discountValue || 0)
+                                                    ) * item.qty
+                                                ).toLocaleString('en-IN')}
+                                            </p>
+                                            <div className="flex gap-1">
+                                                <select
+                                                    value={item.discountType || 'flat'}
+                                                    onChange={(e) => updateDiscount(item.id, 'discountType', e.target.value)}
+                                                    className="px-1 py-0.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-[9px] font-bold text-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+                                                >
+                                                    <option value="flat">₹</option>
+                                                    <option value="percent">%</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    value={item.discountValue || ''}
+                                                    onChange={(e) => updateDiscount(item.id, 'discountValue', e.target.value)}
+                                                    placeholder="Disc"
+                                                    className="w-full pl-1 pr-1 py-0.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all text-right"
+                                                />
+                                            </div>
+                                        </div>
 
                                         {/* Remove */}
                                         <button
