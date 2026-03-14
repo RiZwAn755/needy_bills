@@ -1,21 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { Link } from 'react-router-dom';
 import { getBills, deleteBill } from '../utils/storage';
 
 export default function AllBills() {
-    const [bills, setBills] = useState([]);
+    const [data, setData] = useState({ bills: [], total: 0 });
+    const [page, setPage] = useState(1);
     const [filterDate, setFilterDate] = useState('');
     const [filterMonth, setFilterMonth] = useState('');
     const [filterName, setFilterName] = useState('');
+    const LIMIT = 20;
 
-    const loadBills = async () => {
-        const data = await getBills();
-        setBills(data);
+    const loadBills = async (currentPage = 1) => {
+        const skip = (currentPage - 1) * LIMIT;
+        const result = await getBills(LIMIT, skip);
+        setData(result);
     };
 
     useEffect(() => {
-        loadBills();
-    }, []);
+        loadBills(page);
+    }, [page]);
+
+    const deferredName = useDeferredValue(filterName);
+
+    const filteredBills = useMemo(() => {
+        return data.bills.filter((bill) => {
+            // Match Name
+            const matchesName = !deferredName || bill.customerName?.toLowerCase().includes(deferredName.toLowerCase());
+
+            // Match Date
+            let matchesDate = true;
+            if (filterDate) {
+                const billDateObj = new Date(bill.createdAt || bill.date);
+                const billDateStr = billDateObj.toISOString().split('T')[0];
+                matchesDate = billDateStr === filterDate;
+            }
+
+            // Match Month
+            let matchesMonth = true;
+            if (filterMonth) {
+                const billDateObj = new Date(bill.createdAt || bill.date);
+                const billMonthStr = billDateObj.toISOString().substring(0, 7);
+                matchesMonth = billMonthStr === filterMonth;
+            }
+
+            return matchesName && matchesDate && matchesMonth;
+        });
+    }, [data.bills, filterName, filterDate, filterMonth]);
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this bill?')) {
@@ -28,29 +58,6 @@ export default function AllBills() {
         }
     };
 
-    const filteredBills = bills.filter((bill) => {
-        // Safe Date Parsing
-        let billDateObj;
-        try {
-            billDateObj = new Date(bill.createdAt || bill.date);
-            if (isNaN(billDateObj.getTime())) throw new Error("Invalid date");
-        } catch (e) {
-            billDateObj = new Date(); // Fallback to avoid crashes
-        }
-
-        // Match Name
-        const matchesName = bill.customerName?.toLowerCase().includes(filterName.toLowerCase());
-
-        // Match Date (YYYY-MM-DD)
-        const billDateStr = billDateObj.toISOString().split('T')[0];
-        const matchesDate = filterDate ? billDateStr === filterDate : true;
-
-        // Match Month (YYYY-MM)
-        const billMonthStr = billDateStr.substring(0, 7);
-        const matchesMonth = filterMonth ? billMonthStr === filterMonth : true;
-
-        return matchesName && matchesDate && matchesMonth;
-    });
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -176,6 +183,31 @@ export default function AllBills() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {data.total > LIMIT && (
+                <div className="mt-8 flex items-center justify-between bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Showing <span className="font-semibold text-gray-900 dark:text-white">{(page - 1) * LIMIT + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(page * LIMIT, data.total)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{data.total}</span> bills
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page * LIMIT >= data.total}
+                            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

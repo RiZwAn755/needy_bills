@@ -58,12 +58,12 @@ export async function deleteProduct(id) {
 }
 
 // ── Bills ──
-export async function getBills() {
+export async function getBills(limit = 50, skip = 0) {
     try {
-        return await fetchAPI('/bills');
+        return await fetchAPI(`/bills?limit=${limit}&skip=${skip}`);
     } catch(err) {
         console.error("Failed fetching bills:", err);
-        return [];
+        return { bills: [], total: 0 };
     }
 }
 
@@ -106,12 +106,12 @@ export async function getBillById(id) {
 }
 
 // ── Expenses ──
-export async function getExpenses() {
+export async function getExpenses(limit = 50, skip = 0) {
     try {
-        return await fetchAPI('/expenses');
+        return await fetchAPI(`/expenses?limit=${limit}&skip=${skip}`);
     } catch(err) {
         console.error("Failed fetching expenses:", err);
-        return [];
+        return { expenses: [], total: 0 };
     }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { getProducts, addProduct, updateProduct, deleteProduct } from '../utils/storage';
 import * as XLSX from 'xlsx';
 
@@ -63,23 +63,26 @@ export default function ManageProducts() {
 
     const refresh = () => loadProducts();
 
-    const filtered = products.filter((p) => {
-        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-            p.category?.toLowerCase().includes(search.toLowerCase());
+    const deferredSearch = useDeferredValue(search);
+    const filtered = useMemo(() => {
+        return products.filter((p) => {
+            const matchesSearch = p.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                p.category?.toLowerCase().includes(deferredSearch.toLowerCase());
 
-        if (!matchesSearch) return false;
+            if (!matchesSearch) return false;
 
-        if (filterType === 'low_stock') {
-            return (p.quantity || 0) <= 10;
-        }
+            if (filterType === 'low_stock') {
+                return (p.quantity || 0) <= 10;
+            }
 
-        if (filterType === 'expiring') {
-            const status = getExpiryStatus(p.expiryDate).status;
-            return status === 'critical' || status === 'warning' || status === 'expired';
-        }
+            if (filterType === 'expiring') {
+                const status = getExpiryStatus(p.expiryDate).status;
+                return status === 'critical' || status === 'warning' || status === 'expired';
+            }
 
-        return true;
-    });
+            return true;
+        });
+    }, [products, deferredSearch, filterType]);
 
     const openAdd = () => {
         setForm({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });

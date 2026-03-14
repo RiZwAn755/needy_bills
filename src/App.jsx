@@ -1,22 +1,31 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/navbar';
 import Footer from './components/footer';
-import Dashboard from './pages/dashboard';
-import ManageProducts from './pages/manageprods';
-import GenerateBill from './pages/generatebill';
-import PrintBill from './pages/printbill';
-import Expenses from './pages/expenses';
-import ProfitAnalytics from './pages/analytics';
-
-import Settings from './pages/settings';
-import AllBills from './pages/allbills';
-import EditBill from './pages/editbill';
-import Login from './pages/login';
-import Signup from './pages/signup';
-import Landing from './pages/landing';
-import AdminDashboard from './pages/admin-dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Lazy load pages
+const Dashboard = lazy(() => import('./pages/dashboard'));
+const ManageProducts = lazy(() => import('./pages/manageprods'));
+const GenerateBill = lazy(() => import('./pages/generatebill'));
+const PrintBill = lazy(() => import('./pages/printbill'));
+const Expenses = lazy(() => import('./pages/expenses'));
+const ProfitAnalytics = lazy(() => import('./pages/analytics'));
+const Settings = lazy(() => import('./pages/settings'));
+const AllBills = lazy(() => import('./pages/allbills'));
+const EditBill = lazy(() => import('./pages/editbill'));
+const Login = lazy(() => import('./pages/login'));
+const Signup = lazy(() => import('./pages/signup'));
+const Landing = lazy(() => import('./pages/landing'));
+const AdminDashboard = lazy(() => import('./pages/admin-dashboard'));
+
+// Loading Fallback
+const PageLoader = () => (
+  <div className="flex-1 flex items-center justify-center p-12">
+    <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+  </div>
+);
 
 function App() {
   return (
@@ -24,8 +33,9 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
           <Navbar />
-          <main className="flex-1">
-            <Routes>
+          <main className="flex-1 flex flex-col">
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
@@ -49,9 +59,10 @@ function App() {
                 <Route path="/signup" element={<Signup />} />
               </Route>
             </Routes>
-          </main>
-          <Footer />
-        </div>
+          </Suspense>
+        </main>
+        <Footer />
+      </div>
       </AuthProvider>
     </BrowserRouter>
   );

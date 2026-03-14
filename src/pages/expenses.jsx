@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { getExpenses, addExpense, updateExpense, deleteExpense, getProducts } from '../utils/storage';
 
 export default function Expenses() {
-    const [expenses, setExpenses] = useState([]);
+    const [data, setData] = useState({ expenses: [], total: 0 });
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const LIMIT = 20;
+
     const [showModal, setShowModal] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -18,33 +21,40 @@ export default function Expenses() {
         notes: '',
     });
 
-    const loadData = async () => {
-        const fetchedExpenses = await getExpenses();
-        setExpenses(fetchedExpenses);
+    const loadData = async (currentPage = 1) => {
+        const skip = (currentPage - 1) * LIMIT;
+        const fetchedExpenses = await getExpenses(LIMIT, skip);
+        setData(fetchedExpenses);
         const fetchedProducts = await getProducts();
         setProducts(fetchedProducts);
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        loadData(page);
+    }, [page]);
 
-    const refresh = () => loadData();
+    const refresh = () => loadData(page);
 
-    const filtered = expenses.filter(
-        (e) =>
-            e.productName?.toLowerCase().includes(search.toLowerCase()) ||
-            e.supplier?.toLowerCase().includes(search.toLowerCase())
-    );
+    const deferredSearch = useDeferredValue(search);
+    const filtered = useMemo(() => {
+        return data.expenses.filter(
+            (e) =>
+                e.productName?.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                e.supplier?.toLowerCase().includes(deferredSearch.toLowerCase())
+        );
+    }, [data.expenses, deferredSearch]);
 
-    const totalSpent = expenses.reduce((sum, e) => sum + (e.totalCost || 0), 0);
-    const thisMonth = expenses
-        .filter((e) => {
-            const d = new Date(e.date);
-            const now = new Date();
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        })
-        .reduce((sum, e) => sum + (e.totalCost || 0), 0);
+    const totalSpent = useMemo(() => data.expenses.reduce((sum, e) => sum + (e.totalCost || 0), 0), [data.expenses]);
+    
+    const thisMonth = useMemo(() => {
+        return data.expenses
+            .filter((e) => {
+                const d = new Date(e.date);
+                const now = new Date();
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, e) => sum + (e.totalCost || 0), 0);
+    }, [data.expenses]);
 
     const openAdd = () => {
         setForm({
@@ -155,7 +165,7 @@ export default function Expenses() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 p-5 shadow-sm animate-fade-in">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Entries</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{expenses.length}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{data.total}</p>
                 </div>
                 <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 p-5 shadow-sm animate-fade-in" style={{ animationDelay: '60ms' }}>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">This Month</p>
@@ -254,6 +264,31 @@ export default function Expenses() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {data.total > LIMIT && (
+                <div className="mt-8 flex items-center justify-between bg-white dark:bg-gray-900 px-6 py-4 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Showing <span className="font-semibold text-gray-900 dark:text-white">{(page - 1) * LIMIT + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(page * LIMIT, data.total)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{data.total}</span> entries
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page * LIMIT >= data.total}
+                            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Next
+                        </button>
                     </div>
                 </div>
             )}

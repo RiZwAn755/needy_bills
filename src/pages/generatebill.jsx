@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProducts, saveBill } from '../utils/storage';
 
@@ -32,13 +32,16 @@ export default function GenerateBill() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const searchResults = search.trim()
-        ? products.filter(
-            (p) =>
-                p.name.toLowerCase().includes(search.toLowerCase()) ||
-                p.category?.toLowerCase().includes(search.toLowerCase())
-        )
-        : products;
+    const deferredSearch = useDeferredValue(search);
+    const searchResults = useMemo(() => {
+        return deferredSearch.trim()
+            ? products.filter(
+                (p) =>
+                    p.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                    p.category?.toLowerCase().includes(deferredSearch.toLowerCase())
+            )
+            : products;
+    }, [products, deferredSearch]);
 
     const addToCart = (product) => {
         setSearch('');
@@ -61,14 +64,15 @@ export default function GenerateBill() {
 
     const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
 
-    const discountAmount =
-        discountType === 'percent'
+    const discountAmount = useMemo(() => {
+        return discountType === 'percent'
             ? (subtotal * (parseFloat(discountValue) || 0)) / 100
             : parseFloat(discountValue) || 0;
+    }, [subtotal, discountType, discountValue]);
 
-    const grandTotal = Math.max(0, subtotal - discountAmount);
+    const grandTotal = useMemo(() => Math.max(0, subtotal - discountAmount), [subtotal, discountAmount]);
 
     const handleGenerateBill = async () => {
         if (cart.length === 0) return;
