@@ -170,98 +170,20 @@ export async function deleteExpense(id) {
 
 // ── Stats ──
 export async function getStats() {
-    const products = await getProducts();
-    const bills = await getBills();
-    const expenses = await getExpenses();
-    const totalRevenue = bills.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + (e.totalCost || 0), 0);
-    return {
-        totalProducts: products.length,
-        totalBills: bills.length,
-        totalRevenue,
-        totalExpenses,
-        totalProfit: totalRevenue - totalExpenses,
-    };
+    try {
+        return await fetchAPI('/stats/overall');
+    } catch (err) {
+        console.error("Failed fetching stats:", err);
+        // Fallback or re-throw
+        throw err;
+    }
 }
 
 // ── Profit Analytics ──
 export async function getProfitAnalytics(period = 'monthly') {
-    const bills = await getBills();
-    const expenses = await getExpenses();
-
-    const getKey = (dateStr) => {
-        const d = new Date(dateStr);
-        const y = d.getFullYear();
-        const m = d.getMonth(); // 0-11
-        if (period === 'yearly') return `${y}`;
-        if (period === 'half-yearly') return m < 6 ? `${y} H1` : `${y} H2`;
-        // monthly
-        return `${y}-${String(m + 1).padStart(2, '0')}`;
-    };
-
-    const revenueMap = {};
-    const expenseMap = {};
-
-    bills.forEach((b) => {
-        const key = getKey(b.createdAt || b.date);
-        revenueMap[key] = (revenueMap[key] || 0) + (b.grandTotal || 0);
-    });
-
-    expenses.forEach((e) => {
-        const key = getKey(e.date);
-        expenseMap[key] = (expenseMap[key] || 0) + (e.totalCost || 0);
-    });
-
-    // Merge all keys and sort
-    const allKeys = [...new Set([...Object.keys(revenueMap), ...Object.keys(expenseMap)])].sort();
-
-    return allKeys.map((key) => ({
-        label: key,
-        revenue: revenueMap[key] || 0,
-        expenses: expenseMap[key] || 0,
-        profit: (revenueMap[key] || 0) - (expenseMap[key] || 0),
-    }));
+    return await fetchAPI(`/stats/profit-trend?period=${period}`);
 }
 
 export async function getProductProfitAnalytics(productName) {
-    const bills = await getBills();
-    const expenses = await getExpenses();
-
-    // Revenue from this product across all bills
-    let totalRevenue = 0;
-    const revenueByMonth = {};
-    bills.forEach((b) => {
-        const key = new Date(b.createdAt || b.date).toISOString().slice(0, 7);
-        (b.items || []).forEach((item) => {
-            if (item.name.toLowerCase() === productName.toLowerCase()) {
-                totalRevenue += item.amount || item.price * item.qty;
-                revenueByMonth[key] = (revenueByMonth[key] || 0) + (item.amount || item.price * item.qty);
-            }
-        });
-    });
-
-    // Expenses for this product
-    let totalExpense = 0;
-    const expenseByMonth = {};
-    expenses.forEach((e) => {
-        if (e.productName?.toLowerCase() === productName.toLowerCase()) {
-            totalExpense += e.totalCost || 0;
-            const key = new Date(e.date).toISOString().slice(0, 7);
-            expenseByMonth[key] = (expenseByMonth[key] || 0) + (e.totalCost || 0);
-        }
-    });
-
-    const allKeys = [...new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)])].sort();
-
-    return {
-        totalRevenue,
-        totalExpense,
-        totalProfit: totalRevenue - totalExpense,
-        monthly: allKeys.map((key) => ({
-            label: key,
-            revenue: revenueByMonth[key] || 0,
-            expenses: expenseByMonth[key] || 0,
-            profit: (revenueByMonth[key] || 0) - (expenseByMonth[key] || 0),
-        })),
-    };
+    return await fetchAPI(`/stats/product?productName=${encodeURIComponent(productName)}`);
 }
