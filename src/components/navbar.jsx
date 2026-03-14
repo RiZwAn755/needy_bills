@@ -92,6 +92,18 @@ export default function Navbar() {
                                 )}
                             </button>
 
+                            {/* Profile (Desktop) */}
+                            {user && !isAdmin && (
+                                <Link
+                                    to="/profile"
+                                    className="hidden md:flex p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    aria-label="Profile"
+                                    title="Profile"
+                                >
+                                    <span className="text-xl leading-none">👤</span>
+                                </Link>
+                            )}
+
                             {/* Logout Request (Desktop) */}
                             {user && (
                                 <button
