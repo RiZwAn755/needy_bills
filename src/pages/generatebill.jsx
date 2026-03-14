@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProducts, saveBill } from '../utils/storage';
 
@@ -6,12 +6,15 @@ export default function GenerateBill() {
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [cart, setCart] = useState([]);
+    
+    // Checkout states
+    const [showCheckout, setShowCheckout] = useState(false);
     const [customerName, setCustomerName] = useState('');
     const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'flat'
     const [discountValue, setDiscountValue] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const searchRef = useRef(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const loadProducts = async () => {
@@ -21,31 +24,22 @@ export default function GenerateBill() {
         loadProducts();
     }, []);
 
-    // Close dropdown on outside click
-    useEffect(() => {
-        const handler = (e) => {
-            if (searchRef.current && !searchRef.current.contains(e.target)) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
+    const categories = useMemo(() => {
+        const cats = ['All', ...new Set(products.map(p => p.category).filter(Boolean))];
+        return cats;
+    }, [products]);
 
     const deferredSearch = useDeferredValue(search);
-    const searchResults = useMemo(() => {
-        return deferredSearch.trim()
-            ? products.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
-                    p.category?.toLowerCase().includes(deferredSearch.toLowerCase())
-            )
-            : products;
-    }, [products, deferredSearch]);
+    const filteredProducts = useMemo(() => {
+        return products.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                p.category?.toLowerCase().includes(deferredSearch.toLowerCase());
+            const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+            return matchesSearch && matchesCategory;
+        });
+    }, [products, deferredSearch, selectedCategory]);
 
     const addToCart = (product) => {
-        setSearch('');
-        setShowDropdown(false);
         const existing = cart.find((c) => c.id === product.id);
         if (existing) {
             setCart(cart.map((c) => (c.id === product.id ? { ...c, qty: c.qty + 1 } : c)));
@@ -62,7 +56,7 @@ export default function GenerateBill() {
         }
     };
 
-    const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
+    const getItemQty = (id) => cart.find(c => c.id === id)?.qty || 0;
 
     const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
 
@@ -74,9 +68,9 @@ export default function GenerateBill() {
 
     const grandTotal = useMemo(() => Math.max(0, subtotal - discountAmount), [subtotal, discountAmount]);
 
-    const handleGenerateBill = async () => {
-        if (cart.length === 0) return;
-        
+    const handleConfirmBill = async () => {
+        if (cart.length === 0 || isSaving) return;
+        setIsSaving(true);
         try {
             const bill = await saveBill({
                 customerName: customerName.trim() || 'Walk-in Customer',
@@ -98,231 +92,254 @@ export default function GenerateBill() {
         } catch(err) {
             console.error(err);
             alert("Failed to generate bill: " + err.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Header */}
-            <div className="mb-8 animate-fade-in">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Generate Bill</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">Search products, add to cart, and create an invoice</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Left: Search & Cart */}
-                <div className="lg:col-span-3 space-y-6">
-                    {/* Customer Name */}
-                    <div className="animate-fade-in">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Customer Name</label>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-32">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Header & Search */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">New Bill</h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">Select products to add to cart</p>
+                    </div>
+                    
+                    <div className="relative w-full md:w-96">
+                        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                         <input
                             type="text"
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                            placeholder="Walk-in Customer"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search products..."
+                            className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all shadow-sm"
                         />
-                    </div>
-
-                    {/* Product Search */}
-                    <div className="relative" ref={searchRef} style={{ zIndex: 50 }}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Search Products</label>
-                        <div className="relative">
-                            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => {
-                                    setSearch(e.target.value);
-                                    setShowDropdown(true);
-                                }}
-                                onFocus={() => setShowDropdown(true)}
-                                placeholder="Type product name to search..."
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
-                            />
-                        </div>
-
-                        {/* Search Dropdown */}
-                        {showDropdown && (
-                            <div className="absolute mt-1.5 w-full max-h-64 overflow-y-auto rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl" style={{ zIndex: 9999 }}>
-                                {searchResults.length === 0 ? (
-                                    <div className="px-4 py-6 text-center text-sm text-gray-400">No products found</div>
-                                ) : (
-                                    searchResults.map((product) => (
-                                        <button
-                                            key={product.id}
-                                            onMouseDown={(e) => { e.preventDefault(); addToCart(product); }}
-                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">{product.name}</p>
-                                                {product.category && (
-                                                    <p className="text-xs text-gray-400 mt-0.5">{product.category}</p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm font-semibold text-gray-900 dark:text-white">₹{product.price.toLocaleString('en-IN')}</span>
-                                                <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                    </svg>
-                                                </span>
-                                            </div>
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Cart Items */}
-                    <div className="animate-fade-in" style={{ animationDelay: '160ms' }}>
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Cart
-                                {cart.length > 0 && (
-                                    <span className="ml-2 text-sm font-normal text-gray-400">({cart.length} item{cart.length !== 1 ? 's' : ''})</span>
-                                )}
-                            </h2>
-                            {cart.length > 0 && (
-                                <button onClick={() => setCart([])} className="text-xs text-rose-500 hover:text-rose-600 font-medium transition-colors">
-                                    Clear All
-                                </button>
-                            )}
-                        </div>
-
-                        {cart.length === 0 ? (
-                            <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 p-8 text-center">
-                                <div className="text-3xl mb-2">🛒</div>
-                                <p className="text-sm text-gray-400 dark:text-gray-500">Search and add products to the cart</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {cart.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow transition-shadow"
-                                    >
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                                            <p className="text-xs text-gray-400 mt-0.5">₹{item.price.toLocaleString('en-IN')} / {item.unit}</p>
-                                        </div>
-
-                                        {/* Quantity Controls */}
-                                        <div className="flex items-center gap-1.5">
-                                            <button
-                                                onClick={() => updateQty(item.id, item.qty - 1)}
-                                                className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors text-sm font-bold"
-                                            >
-                                                −
-                                            </button>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={item.qty}
-                                                onChange={(e) => updateQty(item.id, parseInt(e.target.value) || 1)}
-                                                className="w-12 text-center py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                                            />
-                                            <button
-                                                onClick={() => updateQty(item.id, item.qty + 1)}
-                                                className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors text-sm font-bold"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-
-                                        {/* Amount */}
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white w-20 text-right">
-                                            ₹{(item.price * item.qty).toLocaleString('en-IN')}
-                                        </p>
-
-                                        {/* Remove */}
-                                        <button
-                                            onClick={() => removeFromCart(item.id)}
-                                            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* Right: Bill Summary */}
-                <div className="lg:col-span-2">
-                    <div className="sticky top-24 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800/60 shadow-lg overflow-hidden animate-fade-in" style={{ animationDelay: '200ms' }}>
-                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Bill Summary</h2>
-                        </div>
+                {/* Categories */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+                    {categories.map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                                selectedCategory === cat
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
 
-                        <div className="p-6 space-y-5">
-                            {/* Subtotal */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500 dark:text-gray-400">Subtotal</span>
-                                <span className="text-sm font-semibold text-gray-900 dark:text-white">₹{subtotal.toLocaleString('en-IN')}</span>
-                            </div>
-
-                            {/* Discount */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount</label>
-                                <div className="flex gap-2">
-                                    <select
-                                        value={discountType}
-                                        onChange={(e) => setDiscountType(e.target.value)}
-                                        className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                                    >
-                                        <option value="percent">%</option>
-                                        <option value="flat">₹</option>
-                                    </select>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={discountValue}
-                                        onChange={(e) => setDiscountValue(e.target.value)}
-                                        placeholder="0"
-                                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                                    />
-                                </div>
-                                {discountAmount > 0 && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1.5 font-medium">
-                                        − ₹{discountAmount.toLocaleString('en-IN')} discount applied
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Divider */}
-                            <div className="border-t border-gray-100 dark:border-gray-800" />
-
-                            {/* Grand Total */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-base font-semibold text-gray-900 dark:text-white">Grand Total</span>
-                                <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                    ₹{grandTotal.toLocaleString('en-IN')}
-                                </span>
-                            </div>
-
-                            {/* Generate Button */}
-                            <button
-                                onClick={handleGenerateBill}
-                                disabled={cart.length === 0}
-                                className={`w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${cart.length > 0
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                {/* Product Grid */}
+                {filteredProducts.length === 0 ? (
+                    <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
+                        <span className="text-4xl">🔍</span>
+                        <p className="text-gray-500 dark:text-gray-400 mt-4">No products found matching your criteria</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        {filteredProducts.map((p, i) => {
+                            const qty = getItemQty(p.id);
+                            return (
+                                <div
+                                    key={p.id}
+                                    className={`group relative bg-white dark:bg-gray-900 rounded-[1.5rem] border transition-all duration-300 overflow-hidden animate-fade-in ${
+                                        qty > 0 
+                                            ? 'border-indigo-500 ring-2 ring-indigo-500/5 shadow-md shadow-indigo-500/5' 
+                                            : 'border-gray-100 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm hover:shadow-lg'
                                     }`}
+                                    style={{ animationDelay: `${i * 20}ms` }}
+                                >
+                                    <div className="p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                                {p.category || 'General'}
+                                            </span>
+                                            {qty > 0 && (
+                                                <span className="flex h-5 w-5 rounded-full bg-indigo-600 text-white text-[9px] font-black items-center justify-center">
+                                                    {qty}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-xs font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                            {p.name}
+                                        </h3>
+                                        
+                                        <div className="flex items-baseline gap-1 mb-3">
+                                            <span className="text-sm font-black text-gray-900 dark:text-white">
+                                                ₹{p.price.toLocaleString('en-IN')}
+                                            </span>
+                                            <span className="text-[9px] font-medium text-gray-400">/ {p.unit}</span>
+                                        </div>
+
+                                        <div className="relative z-10">
+                                            {qty > 0 ? (
+                                                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-indigo-100 dark:border-indigo-500/20">
+                                                    <button
+                                                        onClick={() => updateQty(p.id, qty - 1)}
+                                                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 transition-all text-xs"
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span className="text-xs font-black text-gray-900 dark:text-white">{qty}</span>
+                                                    <button
+                                                        onClick={() => updateQty(p.id, qty + 1)}
+                                                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all text-xs"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => addToCart(p)}
+                                                    className="w-full py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black hover:bg-indigo-600 dark:hover:bg-indigo-100 transition-all flex items-center justify-center gap-1.5"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                    Add
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* Floating Checkout Bar */}
+            {cart.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-50 animate-slide-up">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                            <div className="hidden sm:block">
+                                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-0.5">Total Items</p>
+                                <p className="text-lg font-bold text-gray-900 dark:text-white">{cart.length}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wider text-indigo-500 font-bold mb-0.5">Total Amount</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">₹{subtotal.toLocaleString('en-IN')}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                           <button 
+                                onClick={() => setCart([])}
+                                className="hidden sm:inline-flex items-center justify-center w-12 h-12 rounded-2xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                title="Clear Cart"
                             >
-                                {cart.length > 0 ? '🧾 Generate Bill' : 'Add items to generate bill'}
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => setShowCheckout(true)}
+                                className="px-8 py-3.5 rounded-2xl bg-indigo-600 text-white font-bold text-sm shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                            >
+                                Next Step
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Checkout Modal */}
+            {showCheckout && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setShowCheckout(false)} />
+                    <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-zoom-in">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Checkout Details</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Finalize customer info and discounts</p>
+                                </div>
+                                <button onClick={() => setShowCheckout(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Customer Name</label>
+                                    <input
+                                        type="text"
+                                        value={customerName}
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        placeholder="Full Name (Optional)"
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Apply Discount</label>
+                                    <div className="flex gap-3">
+                                        <select
+                                            value={discountType}
+                                            onChange={(e) => setDiscountType(e.target.value)}
+                                            className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-sm font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                        >
+                                            <option value="percent">% Off</option>
+                                            <option value="flat">₹ Off</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            value={discountValue}
+                                            onChange={(e) => setDiscountValue(e.target.value)}
+                                            placeholder="0"
+                                            className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-6 rounded-3xl bg-gray-50 dark:bg-gray-800/40 space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-500 dark:text-gray-400">Subtotal ({cart.length} items)</span>
+                                        <span className="font-semibold text-gray-900 dark:text-white">₹{subtotal.toLocaleString('en-IN')}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                                        <span>Discount</span>
+                                        <span className="font-bold">− ₹{discountAmount.toLocaleString('en-IN')}</span>
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                                        <span className="text-lg font-bold text-gray-900 dark:text-white">Payable</span>
+                                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">₹{grandTotal.toLocaleString('en-IN')}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleConfirmBill}
+                                    disabled={isSaving}
+                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSaving ? 'Processing...' : 'Confirm & Print Bill'}
+                                    {!isSaving && (
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

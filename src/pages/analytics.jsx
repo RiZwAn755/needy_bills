@@ -32,23 +32,33 @@ export default function ProfitAnalytics() {
     const [productNames, setProductNames] = useState([]);
     const [overallData, setOverallData] = useState([]);
     const [productData, setProductData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // Initial Load
     useEffect(() => {
         const loadInitialData = async () => {
-            const fetchedStats = await getStats();
-            setStats(fetchedStats);
+            try {
+                const fetchedStats = await getStats();
+                setStats(fetchedStats || {});
 
-            const fetchedProducts = await getProducts();
-            setProducts(fetchedProducts);
+                const fetchedProducts = await getProducts();
+                setProducts(fetchedProducts || []);
 
-            const fetchedExpenses = await getExpenses();
-            setExpenses(fetchedExpenses || []);
+                const expenseResponse = await getExpenses(1000, 0); 
+                const fetchedExpenses = expenseResponse.expenses || [];
+                setExpenses(fetchedExpenses);
 
-            const names = new Set();
-            (fetchedProducts || []).forEach((p) => names.add(p.name));
-            (fetchedExpenses || []).forEach((e) => names.add(e.productName));
-            setProductNames([...names].sort());
+                const names = new Set();
+                (fetchedProducts || []).forEach((p) => names.add(p.name));
+                fetchedExpenses.forEach((e) => names.add(e.productName));
+                setProductNames([...names].sort());
+            } catch (err) {
+                console.error("Stats load error:", err);
+                setError("Failed to load summary stats");
+            } finally {
+                setIsLoading(false);
+            }
         };
         loadInitialData();
     }, []);
@@ -56,8 +66,14 @@ export default function ProfitAnalytics() {
     // Load Overall Analytics on Period Change
     useEffect(() => {
         const loadOverall = async () => {
-            const data = await getProfitAnalytics(period);
-            setOverallData(data);
+            try {
+                const data = await getProfitAnalytics(period);
+                // alert(`Loaded ${data?.length} analytics points`); // Temporarily disabled but useful if I could see it
+                setOverallData(data || []);
+            } catch (err) {
+                console.error("Overall analytics error:", err);
+                setOverallData([]);
+            }
         };
         loadOverall();
     }, [period]);
@@ -66,8 +82,13 @@ export default function ProfitAnalytics() {
     useEffect(() => {
         const loadProduct = async () => {
             if (selectedProduct) {
-                const data = await getProductProfitAnalytics(selectedProduct);
-                setProductData(data);
+                try {
+                    const data = await getProductProfitAnalytics(selectedProduct);
+                    setProductData(data);
+                } catch (err) {
+                    console.error("Product analytics error:", err);
+                    setProductData(null);
+                }
             } else {
                 setProductData(null);
             }
@@ -190,12 +211,25 @@ export default function ProfitAnalytics() {
         }
         : null;
 
+    if (isLoading) {
+        return (
+            <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
             <div className="mb-8 animate-fade-in">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profit Analytics</h1>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">Revenue, expenses, and profit insights</p>
+                {error && (
+                    <div className="mt-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-sm font-medium border border-rose-100 dark:border-rose-500/20">
+                        ⚠️ {error}
+                    </div>
+                )}
             </div>
 
             {/* Summary Cards */}

@@ -13,6 +13,12 @@ async function fetchAPI(endpoint, options = {}) {
     });
     
     if (!res.ok) {
+        // Handle session expiry
+        if ((res.status === 401 || res.status === 403) && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+            return;
+        }
+
         let errMessage = 'API Request Failed';
         try {
             const data = await res.json();
