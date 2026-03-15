@@ -107,86 +107,91 @@ export default function Profile() {
     }
 
     return (
-        <div className="flex-1 p-4 md:p-8 flex items-center justify-center">
-            <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                {/* Header Banner */}
-                <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative">
-                    <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-white dark:bg-gray-900 rounded-full p-2 shadow-lg flex items-center justify-center">
-                         <div className="w-full h-full rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400">
-                           <span className="text-3xl">🏢</span>
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+            <div className="max-w-4xl mx-auto space-y-5">
+                <div className="rounded-3xl overflow-hidden border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-gray-900 shadow-sm">
+                    <div className="h-32 sm:h-36 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative" />
+                    <div className="px-5 sm:px-7 pb-6 -mt-12 sm:-mt-14 relative z-10">
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white dark:bg-gray-900 rounded-2xl p-2 shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center">
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                <span className="text-3xl sm:text-4xl">🏢</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 sm:mt-5">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{businessName}</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Business Profile & Account Actions</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Profile Content */}
-                <div className="pt-16 pb-8 px-6 text-center space-y-6">
-                    <div>
-                        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mt-2">
-                            {businessName}
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Business Profile</p>
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-gray-900 shadow-sm p-5 sm:p-6">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Plan Details</h2>
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Your subscription validity and account status.</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${isExpired ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-900/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
+                                {isExpired ? 'Expired' : 'Active'}
+                            </span>
+                        </div>
 
-                    {/* Plan Details */}
-                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
-                        <div className="flex items-center justify-between">
+                        <div className="mt-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/40 p-4">
                             <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                                 <span className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </span>
-                                <div className="text-left">
-                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Plan Expiry</p>
-                                     <p className={`font-medium ${isExpired ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                                        {dueDateStr}
-                                     </p>
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Plan Expiry Date</p>
+                                    <p className={`font-semibold text-base mt-0.5 ${isExpired ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{dueDateStr}</p>
                                 </div>
                             </div>
-                            {isExpired && (
-                                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                                    Expired
-                                </span>
-                            )}
                         </div>
                     </div>
-                    
-                    {error && (
-                         <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/10 py-2 rounded-md">
-                           {error}
-                         </div>
-                    )}
 
-                    {/* Actions */}
-                    <div className="space-y-3 pt-4">
-                        <button
-                            onClick={handleDownloadAllData}
-                            disabled={loadingStats}
-                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-lg shadow-gray-900/20 dark:shadow-white/10"
-                        >
-                            {loadingStats ? (
-                                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"/>
-                            ) : (
-                                <>
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download Report (PDF)
-                                </>
-                            )}
-                        </button>
-                        
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            Logout
-                        </button>
+                    <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-gray-900 shadow-sm p-5 sm:p-6">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">Export business data or safely logout.</p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleDownloadAllData}
+                                disabled={loadingStats}
+                                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-400 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {loadingStats ? (
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download Report (PDF)
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                onClick={handleLogout}
+                                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-3.5 bg-white dark:bg-transparent text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/25 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                {error && (
+                    <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                        {error}
+                    </div>
+                )}
             </div>
         </div>
     );

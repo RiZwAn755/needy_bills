@@ -91,6 +91,18 @@ export default function ManageProducts() {
         });
     }, [products, deferredSearch, filterType]);
 
+    const inventoryStats = useMemo(() => {
+        const active = products.filter((p) => getExpiryStatus(p.expiryDate).status !== 'expired').length;
+        const lowStock = products.filter((p) => getExpiryStatus(p.expiryDate).status !== 'expired' && (p.quantity || 0) <= 10).length;
+        const expiringSoon = products.filter((p) => {
+            const status = getExpiryStatus(p.expiryDate).status;
+            return status === 'critical' || status === 'warning';
+        }).length;
+        const expired = products.filter((p) => getExpiryStatus(p.expiryDate).status === 'expired').length;
+
+        return { active, lowStock, expiringSoon, expired };
+    }, [products]);
+
     const openAdd = () => {
         setForm({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
         setEditingProduct(null);
@@ -288,9 +300,29 @@ export default function ManageProducts() {
                 </div>
             )}
 
+            {/* Inventory Summary */}
+            <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in" style={{ animationDelay: '60ms' }}>
+                <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-gray-900 p-4 shadow-sm">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Active Products</p>
+                    <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{inventoryStats.active}</p>
+                </div>
+                <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-500/5 p-4 shadow-sm">
+                    <p className="text-xs text-amber-700 dark:text-amber-400">Low Stock</p>
+                    <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-400">{inventoryStats.lowStock}</p>
+                </div>
+                <div className="rounded-2xl border border-rose-200/80 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-500/5 p-4 shadow-sm">
+                    <p className="text-xs text-rose-700 dark:text-rose-400">Expiring Soon</p>
+                    <p className="mt-1 text-2xl font-bold text-rose-700 dark:text-rose-400">{inventoryStats.expiringSoon}</p>
+                </div>
+                <div className="rounded-2xl border border-red-200/80 dark:border-red-900/50 bg-red-50/50 dark:bg-red-500/5 p-4 shadow-sm">
+                    <p className="text-xs text-red-700 dark:text-red-400">Expired</p>
+                    <p className="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">{inventoryStats.expired}</p>
+                </div>
+            </div>
+
             {/* Filters & Search */}
             <div className="mb-6 animate-fade-in" style={{ animationDelay: '80ms' }}>
-                <div className="flex flex-col gap-3">
+                <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white/90 dark:bg-gray-900/90 shadow-sm p-3 sm:p-4 flex flex-col gap-3">
                     <div className="relative w-full">
                         <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -313,7 +345,7 @@ export default function ManageProducts() {
                                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                                 }`}
                         >
-                            All Products
+                            All Products ({inventoryStats.active})
                         </button>
                         <button
                             onClick={() => setFilterType('low_stock')}
@@ -323,7 +355,7 @@ export default function ManageProducts() {
                                 }`}
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Low Stock
+                            Low Stock ({inventoryStats.lowStock})
                         </button>
                         <button
                             onClick={() => setFilterType('expiring')}
@@ -333,7 +365,7 @@ export default function ManageProducts() {
                                 }`}
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Expiring Soon
+                            Expiring Soon ({inventoryStats.expiringSoon})
                         </button>
                         <button
                             onClick={() => setFilterType('expired')}
@@ -343,8 +375,22 @@ export default function ManageProducts() {
                                 }`}
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Expired
+                            Expired ({inventoryStats.expired})
                         </button>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{filtered.length}</span> result{filtered.length !== 1 ? 's' : ''}
+                        </p>
+                        {(search || filterType !== 'all') && (
+                            <button
+                                onClick={() => { setSearch(''); setFilterType('all'); }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
