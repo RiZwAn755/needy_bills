@@ -44,7 +44,7 @@ export default function ManageProducts() {
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
-    const [form, setForm] = useState({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
+    const [form, setForm] = useState({ name: '', price: '', buyingPrice: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
     const [filterType, setFilterType] = useState('all'); // 'all', 'low_stock', 'expiring'
     const [showImportModal, setShowImportModal] = useState(false);
     const [importPreview, setImportPreview] = useState([]);
@@ -104,7 +104,7 @@ export default function ManageProducts() {
     }, [products]);
 
     const openAdd = () => {
-        setForm({ name: '', price: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
+        setForm({ name: '', price: '', buyingPrice: '', unit: 'pcs', category: '', expiryDate: '', quantity: '' });
         setEditingProduct(null);
         setShowModal(true);
     };
@@ -113,6 +113,7 @@ export default function ManageProducts() {
         setForm({
             name: product.name,
             price: String(product.price),
+            buyingPrice: product.buyingPrice !== undefined ? String(product.buyingPrice) : '',
             unit: product.unit || 'pcs',
             category: product.category || '',
             expiryDate: product.expiryDate || '',
@@ -131,19 +132,21 @@ export default function ManageProducts() {
                 await updateProduct(editingProduct.id, {
                     name: form.name.trim(),
                     price: parseFloat(form.price),
+                    buyingPrice: parseFloat(form.buyingPrice) || 0,
                     unit: form.unit,
                     category: form.category.trim(),
                     expiryDate: form.expiryDate || '',
-                    quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+                    quantity: form.quantity ? parseFloat(form.quantity) : 0
                 });
             } else {
                 await addProduct({
                     name: form.name.trim(),
                     price: parseFloat(form.price),
+                    buyingPrice: parseFloat(form.buyingPrice) || 0,
                     unit: form.unit,
                     category: form.category.trim(),
                     expiryDate: form.expiryDate || '',
-                    quantity: form.quantity ? parseInt(form.quantity, 10) : 0
+                    quantity: form.quantity ? parseFloat(form.quantity) : 0
                 });
             }
             setShowModal(false);
@@ -198,22 +201,24 @@ export default function ManageProducts() {
                         const name = String(mapCol(row, ['name', 'product', 'item']) || '').trim();
                         const priceRaw = mapCol(row, ['price', 'rate', 'cost', 'mrp']);
                         const price = parseFloat(String(priceRaw).replace(/[^0-9.]/g, ''));
+                        const buyingPriceRaw = mapCol(row, ['buying', 'purchase', 'buying price', 'cost price', 'buy price', 'cp']);
+                        const buyingPrice = parseFloat(String(buyingPriceRaw).replace(/[^0-9.]/g, '')) || 0;
                         const unit = String(mapCol(row, ['unit', 'uom']) || 'pcs').trim() || 'pcs';
                         const category = String(mapCol(row, ['category', 'cat', 'type', 'group']) || '').trim();
                         const quantityRaw = mapCol(row, ['quantity', 'qty', 'stock']);
-                        const quantity = quantityRaw ? parseInt(String(quantityRaw).replace(/[^0-9]/g, ''), 10) : 0;
+                        const quantity = quantityRaw ? parseFloat(String(quantityRaw).replace(/[^0-9.]/g, '')) : 0;
                         const expiryRaw = mapCol(row, ['expiry', 'expire', 'exp', 'best before']);
                         let expiryDate = '';
                         if (expiryRaw) {
                             const d = new Date(expiryRaw);
                             if (!isNaN(d.getTime())) expiryDate = d.toISOString().split('T')[0];
                         }
-                        return { name, price, unit, category, quantity, expiryDate };
+                        return { name, price, buyingPrice, unit, category, quantity, expiryDate };
                     })
                     .filter((p) => p.name && !isNaN(p.price) && p.price > 0);
 
                 if (parsed.length === 0) {
-                    setImportError('No valid products found. Make sure your file has columns: Name, Price. Optional: Unit, Category, Expiry Date.');
+                    setImportError('No valid products found. Make sure your file has columns: Name, Price. Optional: Buying Price, Unit, Category, Quantity, Expiry Date.');
                     return;
                 }
 
@@ -556,6 +561,21 @@ export default function ManageProducts() {
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Buying Price (₹)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={form.buyingPrice}
+                                        onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
+                                        placeholder="0.00"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Unit</label>
                                     <select
                                         value={form.unit}
@@ -572,9 +592,6 @@ export default function ManageProducts() {
                                         <option value="pack">Pack</option>
                                     </select>
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category <span className="text-gray-400">(optional)</span></label>
                                     <input
@@ -589,6 +606,7 @@ export default function ManageProducts() {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Quantity <span className="text-gray-400">(optional)</span></label>
                                     <input
                                         type="number"
+                                        step="0.01"
                                         min="0"
                                         value={form.quantity}
                                         onChange={(e) => setForm({ ...form, quantity: e.target.value })}
@@ -660,6 +678,7 @@ export default function ManageProducts() {
                                         <th className="px-3 py-2">#</th>
                                         <th className="px-3 py-2">Name</th>
                                         <th className="px-3 py-2">Price</th>
+                                        <th className="px-3 py-2">Buying</th>
                                         <th className="px-3 py-2">Unit</th>
                                         <th className="px-3 py-2">Category</th>
                                         <th className="px-3 py-2 text-right">Qty</th>
@@ -672,6 +691,7 @@ export default function ManageProducts() {
                                             <td className="px-3 py-2.5 text-gray-400">{i + 1}</td>
                                             <td className="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{p.name}</td>
                                             <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">₹{p.price.toLocaleString('en-IN')}</td>
+                                            <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">₹{(p.buyingPrice || 0).toLocaleString('en-IN')}</td>
                                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{p.unit}</td>
                                             <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{p.category || '—'}</td>
                                             <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300 text-right font-medium">{p.quantity || 0}</td>

@@ -45,9 +45,23 @@ export default function GenerateBill() {
         });
     }, [products, deferredSearch, selectedCategory]);
 
+    const getProductStock = (productId) => {
+        const product = products.find((p) => p.id === productId);
+        return Math.max(0, Number(product?.quantity) || 0);
+    };
+
+    const getAvailableQty = (productId) => {
+        const inCartQty = getItemQty(productId);
+        return Math.max(0, getProductStock(productId) - inCartQty);
+    };
+
     const addToCart = (product) => {
+        const stock = Math.max(0, Number(product.quantity) || 0);
+        if (stock <= 0) return;
+
         const existing = cart.find((c) => c.id === product.id);
         if (existing) {
+            if (existing.qty >= stock) return;
             setCart(cart.map((c) => (c.id === product.id ? { ...c, qty: c.qty + 1 } : c)));
         } else {
             setCart([...cart, { ...product, qty: 1, discountType: 'flat', discountValue: 0 }]);
@@ -55,10 +69,13 @@ export default function GenerateBill() {
     };
 
     const updateQty = (id, qty) => {
-        if (qty <= 0) {
+        const parsedQty = Number(qty);
+        if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
             setCart(cart.filter((c) => c.id !== id));
         } else {
-            setCart(cart.map((c) => (c.id === id ? { ...c, qty } : c)));
+            const maxQty = getProductStock(id);
+            const safeQty = Math.min(parsedQty, maxQty);
+            setCart(cart.map((c) => (c.id === id ? { ...c, qty: safeQty } : c)));
         }
     };
 
@@ -105,7 +122,7 @@ export default function GenerateBill() {
                         id: c.id,
                         name: c.name,
                         price: c.price,
-                        qty: c.qty,
+                        qty: Number(c.qty) || 0,
                         unit: c.unit,
                         discountType: c.discountType || 'flat',
                         discountValue: c.discountValue || 0,
@@ -179,6 +196,9 @@ export default function GenerateBill() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                         {filteredProducts.map((p, i) => {
                             const qty = getItemQty(p.id);
+                            const availableQty = getAvailableQty(p.id);
+                            const totalStock = Math.max(0, Number(p.quantity) || 0);
+                            const isOutOfStock = totalStock <= 0;
                             return (
                                 <div
                                     key={p.id}
@@ -212,6 +232,10 @@ export default function GenerateBill() {
                                             <span className="text-[9px] font-medium text-gray-400">/ {p.unit}</span>
                                         </div>
 
+                                        <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                                            Available: {availableQty} {p.unit}
+                                        </p>
+
                                         <div className="relative z-10">
                                             {qty > 0 ? (
                                                 <div className="space-y-2">
@@ -222,9 +246,17 @@ export default function GenerateBill() {
                                                         >
                                                             −
                                                         </button>
-                                                        <span className="text-xs font-black text-gray-900 dark:text-white">{qty}</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={qty}
+                                                            onChange={(e) => updateQty(p.id, e.target.value)}
+                                                            className="w-16 bg-transparent text-center text-xs font-black text-gray-900 dark:text-white focus:outline-none"
+                                                        />
                                                         <button
                                                             onClick={() => updateQty(p.id, qty + 1)}
+                                                            disabled={availableQty <= 0}
                                                             className="w-7 h-7 rounded-lg bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center font-black hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all text-xs"
                                                         >
                                                             +
@@ -251,12 +283,13 @@ export default function GenerateBill() {
                                             ) : (
                                                 <button
                                                     onClick={() => addToCart(p)}
-                                                    className="w-full py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black hover:bg-indigo-600 dark:hover:bg-indigo-100 transition-all flex items-center justify-center gap-1.5"
+                                                    disabled={isOutOfStock}
+                                                    className="w-full py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black hover:bg-indigo-600 dark:hover:bg-indigo-100 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-900 dark:disabled:hover:bg-white"
                                                 >
                                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
-                                                    Add
+                                                    {isOutOfStock ? 'Out of stock' : 'Add'}
                                                 </button>
                                             )}
                                         </div>
