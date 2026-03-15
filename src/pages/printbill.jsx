@@ -66,7 +66,7 @@ export default function PrintBill() {
             {/* Invoice Card – this is the printable area */}
             <div id="print-area" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-lg overflow-hidden animate-fade-in" style={{ animationDelay: '100ms' }}>
                 {/* Invoice Header */}
-                <div className="px-8 py-6 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10 border-b border-gray-100 dark:border-gray-800">
+                <div className="px-4 sm:px-8 py-4 sm:py-6 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-3">
@@ -94,8 +94,8 @@ export default function PrintBill() {
                             </div>
                         </div>
 
-                        <div className="text-right">
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <div className="text-right sm:text-right">
+                            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                                 #{bill.billNumber != null ? String(bill.billNumber).padStart(4, '0') : 'N/A'}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -109,34 +109,34 @@ export default function PrintBill() {
                 </div>
 
                 {/* Customer Info */}
-                <div className="px-8 py-4 border-b border-gray-100 dark:border-gray-800">
+                <div className="px-4 sm:px-8 py-4 border-b border-gray-100 dark:border-gray-800">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-1">Billed To</p>
                     <p className="text-base font-semibold text-gray-900 dark:text-white">{bill.customerName}</p>
                 </div>
 
                 {/* Items Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-0">
                         <thead>
                             <tr className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50">
-                                <th className="px-8 py-3">#</th>
-                                <th className="px-4 py-3">Product</th>
-                                <th className="px-4 py-3 text-center">Qty</th>
-                                <th className="px-4 py-3 text-right">Rate</th>
-                                <th className="px-4 py-3 text-right">Disc</th>
-                                <th className="px-8 py-3 text-right">Amount</th>
+                                <th className="px-3 sm:px-8 py-3">#</th>
+                                <th className="px-2 sm:px-4 py-3">Product</th>
+                                <th className="px-2 sm:px-4 py-3 text-center">Qty</th>
+                                <th className="px-2 sm:px-4 py-3 text-right">Rate</th>
+                                <th className="px-2 sm:px-4 py-3 text-right">Disc</th>
+                                <th className="px-3 sm:px-8 py-3 text-right">Amt</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                             {bill.items.map((item, i) => (
-                                <tr key={i} className="text-sm">
-                                    <td className="px-8 py-3.5 text-gray-400 dark:text-gray-500">{i + 1}</td>
-                                    <td className="px-4 py-3.5 font-medium text-gray-900 dark:text-white">{item.name}</td>
-                                    <td className="px-4 py-3.5 text-center text-gray-600 dark:text-gray-400">
+                                <tr key={i} className="text-xs sm:text-sm">
+                                    <td className="px-3 sm:px-8 py-2.5 sm:py-3.5 text-gray-400 dark:text-gray-500">{i + 1}</td>
+                                    <td className="px-2 sm:px-4 py-2.5 sm:py-3.5 font-medium text-gray-900 dark:text-white max-w-[80px] sm:max-w-none truncate sm:whitespace-normal">{item.name}</td>
+                                    <td className="px-2 sm:px-4 py-2.5 sm:py-3.5 text-center text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                         {item.qty} {item.unit}
                                     </td>
-                                    <td className="px-4 py-3.5 text-right text-gray-600 dark:text-gray-400">₹{item.price.toLocaleString('en-IN')}</td>
-                                    <td className="px-4 py-3.5 text-right text-emerald-600 dark:text-emerald-400 font-medium">
+                                    <td className="px-2 sm:px-4 py-2.5 sm:py-3.5 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">₹{item.price.toLocaleString('en-IN')}</td>
+                                    <td className="px-2 sm:px-4 py-2.5 sm:py-3.5 text-right text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
                                         {item.discountAmount > 0 ? (
                                             <div className="flex flex-col items-end">
                                                 <span>−₹{item.discountAmount.toLocaleString('en-IN')}</span>
@@ -149,7 +149,7 @@ export default function PrintBill() {
                                             </div>
                                         ) : '—'}
                                     </td>
-                                    <td className="px-8 py-3.5 text-right font-semibold text-gray-900 dark:text-white">₹{item.amount.toLocaleString('en-IN')}</td>
+                                    <td className="px-3 sm:px-8 py-2.5 sm:py-3.5 text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">₹{item.amount.toLocaleString('en-IN')}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -157,7 +157,7 @@ export default function PrintBill() {
                 </div>
 
                 {/* Totals */}
-                <div className="px-8 py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="px-4 sm:px-8 py-4 sm:py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                     <div className="max-w-xs ml-auto space-y-2">
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
@@ -188,7 +188,7 @@ export default function PrintBill() {
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">
+                <div className="px-4 sm:px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                         {settings.footerMessage}
                     </p>
