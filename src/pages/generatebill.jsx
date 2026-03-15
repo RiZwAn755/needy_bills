@@ -32,6 +32,12 @@ export default function GenerateBill() {
     const deferredSearch = useDeferredValue(search);
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
+            // Exclude expired products
+            if (p.expiryDate) {
+                const expiry = new Date(p.expiryDate);
+                expiry.setHours(23, 59, 59, 999);
+                if (expiry < new Date()) return false;
+            }
             const matchesSearch = p.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
                 p.category?.toLowerCase().includes(deferredSearch.toLowerCase());
             const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
