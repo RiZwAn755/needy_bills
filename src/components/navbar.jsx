@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import {
+    BarChart3,
+    UserPlus,
+    Package,
+    Receipt,
+    FilePlus2,
+    Wallet,
+    TrendingUp,
+    Settings,
+    UserRound
+} from 'lucide-react';
 
 export default function Navbar() {
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -14,17 +25,22 @@ export default function Navbar() {
     const { user, isAdmin, logout } = useAuth();
 
     const navLinks = isAdmin ? [
-        { to: '/admin', label: 'Admin Dashboard', icon: '🛡️' },
-        { to: '/signup', label: 'Register User', icon: '➕' }
+        { to: '/admin', label: 'Admin Dashboard', icon: BarChart3 },
+        { to: '/signup', label: 'Register User', icon: UserPlus }
     ] : [
-        { to: '/products', label: 'Products', icon: '📦' },
-        { to: '/all-bills', label: 'All Bills', icon: '📂' },
-        { to: '/bill', label: 'New Bill', icon: '🧾' },
-        { to: '/expenses', label: 'Expenses', icon: '💸' },
-        { to: '/analytics', label: 'Analytics', icon: '📈' },
-        { to: '/settings', label: 'Settings', icon: '⚙️' },
-        { to: '/profile', label: 'Profile', icon: '👤' }
+        { to: '/products', label: 'Products', icon: Package },
+        { to: '/all-bills', label: 'All Bills', icon: Receipt },
+        { to: '/bill', label: 'New Bill', icon: FilePlus2 },
+        { to: '/expenses', label: 'Expenses', icon: Wallet },
+        { to: '/analytics', label: 'Analytics', icon: TrendingUp },
+        { to: '/settings', label: 'Settings', icon: Settings },
+        { to: '/profile', label: 'Profile', icon: UserRound }
     ];
+
+    const renderNavIcon = (link) => {
+        const IconComponent = link.icon;
+        return <IconComponent className="w-4 h-4" strokeWidth={2.2} />;
+    };
 
     const toggleDark = () => {
         const next = !dark;
@@ -60,12 +76,19 @@ export default function Navbar() {
                                         <Link
                                             key={link.to}
                                             to={link.to}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+                                            className={`group px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                                                 ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
                                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                                                 }`}
                                         >
-                                            <span className="mr-1.5">{link.icon}</span>
+                                            <span
+                                                className={`inline-flex items-center justify-center w-6 h-6 mr-1.5 rounded-md transition-colors ${isActive
+                                                    ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                                                    : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'
+                                                    }`}
+                                            >
+                                                {renderNavIcon(link)}
+                                            </span>
                                             {link.label}
                                         </Link>
                                     );
@@ -130,7 +153,14 @@ export default function Navbar() {
                                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                             }`}
                                     >
-                                        <span className="mr-2">{link.icon}</span>
+                                        <span
+                                            className={`inline-flex items-center justify-center w-6 h-6 mr-2 rounded-md transition-colors ${isActive
+                                                ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                                                : 'text-gray-500 dark:text-gray-400'
+                                                }`}
+                                        >
+                                            {renderNavIcon(link)}
+                                        </span>
                                         {link.label}
                                     </Link>
                                 );
