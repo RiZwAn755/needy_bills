@@ -4,6 +4,7 @@ import Navbar from './components/navbar';
 import Footer from './components/footer';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import GlobalLoader from './components/GlobalLoader';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/dashboard'));
@@ -33,6 +34,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+          <GlobalLoader />
           <Navbar />
           <main className="flex-1 flex flex-col">
             <Suspense fallback={<PageLoader />}>
